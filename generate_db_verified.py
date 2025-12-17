@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2025年军事知识竞赛模拟系统</title>
+    <style>
+        :root {
+            --primary: #2d5a27;   /* 主色调：深绿 */
+            --accent: #d9534f;    /* 强调色：红色 */
+            --review-bg: #fff3cd; /* 复习模式背景 */
+            --review-text: #856404;
+            --bg: #f4f4f9;
+            --card: #fff;
+            --text: #333;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            margin: 0; padding: 0;
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
+            display: flex; flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* ================= Header & Logo ================= */
+        .header {
+            text-align: center; margin-bottom: 20px; padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .logo-box {
+            width: 50px; height: 50px; background: var(--primary); color: white;
+            font-weight: 900; font-size: 28px; line-height: 50px; text-align: center;
+            border-radius: 8px; letter-spacing: -2px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-bottom: 10px;
+        }
+        .header h1 { color: var(--primary); margin: 5px 0; font-size: 22px; }
+        .sub-title { color: #666; font-size: 13px; }
+
+        /* ================= 通用组件 ================= */
+        .card-box {
+            background: var(--card); padding: 20px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
+        }
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 12px 20px;
+            font-size: 16px; border-radius: 8px; cursor: pointer; transition: 0.2s;
+            font-weight: bold; box-shadow: 0 3px #1e3d1a; width: 100%;
+        }
+        .btn:active { transform: translateY(2px); box-shadow: 0 1px #1e3d1a; }
+        .btn.danger { background: var(--accent); box-shadow: 0 3px #c9302c; }
+        .btn.secondary { background: #6c757d; box-shadow: 0 3px #545b62; }
+
+        /* ================= 历史记录样式 ================= */
+        #history-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px; }
+        .history-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
+        .history-table th { text-align: left; color: #666; border-bottom: 1px solid #eee; padding: 5px; }
+        .history-table td { padding: 8px 5px; border-bottom: 1px solid #eee; }
+        .history-score { color: var(--accent); font-weight: bold; }
+        .clear-hist-btn { background: none; border: none; color: #999; font-size: 12px; text-decoration: underline; margin-top: 10px; padding: 5px; }
+
+        /* ================= 考试界面 (单行紧凑布局) ================= */
+        #exam-screen { display: none; padding-top: 5px; }
+        
+        .top-bar-compact {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: -15px -15px 15px -15px; /* 抵消 container padding */
+            padding: 8px 10px;
+            
+            display: flex; align-items: center; justify-content: space-between; gap: 5px;
+            transition: all 0.3s;
+        }
+
+        /* 复习模式专用样式 */
+        .top-bar-review {
+            background: var(--review-bg);
+            border-bottom: 1px solid #ffeeba;
+        }
+
+        .timer-compact {
+            font-family: monospace; font-size: 16px; font-weight: bold; color: var(--accent);
+            white-space: nowrap;
+        }
+
+        /* 中间导航条 */
+        .nav-compact-group { display: flex; flex: 1; justify-content: center; gap: 4px; }
+        .mini-nav-btn {
+            background: #f0f2f5; border: 1px solid #e1e4e8; border-radius: 4px;
+            padding: 4px 6px; font-size: 11px; color: #555;
+            text-align: center; cursor: pointer; line-height: 1.2;
+            min-width: 55px;
+        }
+        .mini-nav-btn b { display: block; font-size: 12px; color: #333; }
+        .mini-nav-btn span { font-size: 10px; color: #888; }
+        .mini-nav-btn:active { background: #e2e6ea; }
+
+        .submit-compact-btn {
+            padding: 6px 10px; font-size: 13px; margin: 0; 
+            box-shadow: none; width: auto; white-space: nowrap;
+            background: var(--accent);
+        }
+
+        /* 题型标题优化：利用 scroll-margin-top 解决遮挡 */
+        h3.section-title {
+            margin: 20px 0 10px 0;
+            scroll-margin-top: 70px; /* 关键：浏览器自动预留顶部空间 */
+        }
+
+        /* ================= 题目卡片与选项 ================= */
+        .question-card { background: var(--card); padding: 15px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .q-header { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+        .q-tag { background: var(--primary); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: 3px; }
+        
+        /* 选项触控优化 */
+        .option-item {
+            display: flex; align-items: flex-start; min-height: 48px;
+            margin: 10px 0; padding: 12px;
+            background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px;
+            cursor: pointer; transition: all 0.1s;
+        }
+        .option-item input { margin-top: 4px; margin-right: 10px; transform: scale(1.3); }
+        .option-item.selected { background: #e8f5e9; border-color: var(--primary); color: var(--primary); font-weight: 500; }
+        
+        /* 解析与结果 */
+        .analysis-box { background: var(--review-bg); padding: 15px; margin-top: 15px; border-radius: 8px; color: var(--review-text); display: none; font-size: 14px; }
+        .show-analysis .analysis-box { display: block; }
+        .wrong-ans .q-header { color: var(--accent); }
+        .wrong-ans .option-item.selected { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+
+        /* ================= Footer ================= */
+        .footer {
+            text-align: center; padding: 20px 0;
+            font-size: 12px; color: #aaa;
+            border-top: 1px solid #eee; margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header" id="main-header">
+        <div class="logo-box">KK</div>
+        <h1>2025年军事知识竞赛模拟系统</h1>
+        <div class="sub-title">闭卷机试 | 限时60分钟 | 总分100分</div>
+    </div>
+
+    <div id="welcome-screen" class="card-box">
+        <h2 style="text-align: center; color:var(--primary); margin-top:0;">准备好了吗？</h2>
+        <div style="background:#eef7ee; padding:15px; border-radius:8px; font-size:14px; color:#333; margin-bottom:20px;">
+            <p><strong>🎯 考试规则：</strong></p>
+            <ul style="padding-left:20px; margin:5px 0;">
+                <li><strong>题量：</strong>300题 (单选150+多选100+判断50)</li>
+                <li><strong>时长：</strong>60分钟 (倒计时结束自动交卷)</li>
+                <li><strong>记录：</strong>系统会自动保存您的练习历史</li>
+            </ul>
+        </div>
+        <button class="btn" onclick="startExam()">开始考试</button>
+        
+        <div id="history-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>📜 练习历史</strong>
+                <button class="clear-hist-btn" onclick="clearHistory()">清空记录</button>
+            </div>
+            <div id="history-list-container">
+                <p style="color:#999; font-size:12px; text-align:center;">暂无练习记录</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="exam-screen">
+        
+        <div class="top-bar-compact" id="exam-top-bar">
+            <div class="timer-compact" id="timer">60:00</div>
+            
+            <div class="nav-compact-group">
+                <div class="mini-nav-btn" onclick="scrollToSection('single')">
+                    <b>单选</b><span id="prog-single">0/150</span>
+                </div>
+                <div class="mini-nav-btn" onclick="scrollToSection('multi')">
+                    <b>多选</b><span id="prog-multi">0/100</span>
+                </div>
+                <div class="mini-nav-btn" onclick="scrollToSection('tf')">
+                    <b>判断</b><span id="prog-tf">0/50</span>
+                </div>
+            </div>
+
+            <button class="btn danger submit-compact-btn" onclick="submitExam(true)">交卷</button>
+        </div>
+
+        <div class="top-bar-compact top-bar-review" id="review-top-bar" style="display:none;">
+            <div style="font-weight:bold; color:var(--review-text); font-size:14px;">📖 错题解析</div>
+            <div style="display:flex; gap:10px;">
+                <button class="mini-nav-btn" id="filter-btn" onclick="toggleWrongOnly(this)" style="width:auto; padding:5px 12px; background:#fff; border-color:#d4a845;">只看错题</button>
+                <button class="submit-compact-btn" onclick="location.reload()" style="background:#6c757d;">退出</button>
+            </div>
+        </div>
+
+        <div id="paper-content"></div>
+        
+        <div id="exam-bottom-action" style="padding: 20px 0;">
+            <button class="btn danger" onclick="submitExam(true)">确认提交试卷</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="card-box" style="display:none; text-align:center;">
+        <h2 style="color:var(--primary)">考试结束</h2>
+        <div style="font-size:50px; font-weight:900; color:var(--primary); margin:10px 0;">
+            <span id="score-display">0</span> <span style="font-size:18px; color:#666;">分</span>
+        </div>
+        <p>答对: <strong id="correct-count">0</strong> / 300 题</p>
+        <div style="background:#fff3cd; padding:10px; border-radius:6px; color:#856404; font-size:14px; margin:20px 0;">
+            错题已标红并显示解析，向下滑动查看
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button class="btn secondary" onclick="reviewWrong()">查看错题</button>
+            <button class="btn" onclick="location.reload()">再练一次</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        版权所有 &copy; 2025 军事知识竞赛模拟系统<br>
+        Created By <span>Kingkong</span> (kingkongch@qq.com)
+    </div>
+</div>
+
+<script src="questions_data.js"></script>
+
+<script>
+    // 全局变量
+    let currentPaper = [];
+    let userAnswers = {}; 
+    let progressStats = { single: 0, multi: 0, tf: 0 };
+    let timeLeft = 3600; 
+    let timerId = null;
+    let isExamFinished = false;
+    let isWrongOnlyMode = false; // 错题筛选状态
+
+    window.onload = function() { renderHistory(); };
+
+    function shuffle(arr) {
+        let m = arr.length, t, i;
+        while (m) {
+            i = Math.floor(Math.random() * m--);
+            t = arr[m]; arr[m] = arr[i]; arr[i] = t;
+        }
+        return arr;
+    }
+
+    // 防误触保护
+    window.onbeforeunload = function(e) {
+        if (!isExamFinished && document.getElementById('exam-screen').style.display === 'block') {
+            e.returnValue = '考试进行中，离开将丢失进度';
+            return e.returnValue;
+        }
+    };
+
+    function startExam() {
+        if (typeof QUESTION_DB === 'undefined') {
+            alert("错误：未找到题库文件 questions_data.js");
+            return;
+        }
+
+        // 【关键修复 1】彻底清空上一轮的答案记录，防止残留
+        userAnswers = {}; 
+
+        // 重置计数
+        progressStats = { single: 0, multi: 0, tf: 0 };
+        updateProgressUI();
+
+        const singles = shuffle([...QUESTION_DB.single]).slice(0, 150);
+        const multis = shuffle([...QUESTION_DB.multi]).slice(0, 100);
+        const tfs = shuffle([...QUESTION_DB.tf]).slice(0, 50);
+
+        currentPaper = [...singles, ...multis, ...tfs];
+        renderPaper(singles, multis, tfs);
+
+        // 切换界面
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('main-header').style.display = 'none';
+        document.getElementById('exam-screen').style.display = 'block';
+        window.scrollTo(0, 0);
+
+        clearInterval(timerId);
+        timerId = setInterval(updateTimer, 1000);
+    }
+
+    function renderPaper(singles, multis, tfs) {
+        const container = document.getElementById('paper-content');
+        container.innerHTML = '';
+        let globalIdx = 1;
+
+        const sections = [
+            { id: 'single', name: '一、单选题', data: singles, type: 'radio' },
+            { id: 'multi', name: '二、多选题', data: multis, type: 'checkbox' },
+            { id: 'tf', name: '三、判断题', data: tfs, type: 'radio' }
+        ];
+
+        sections.forEach(sec => {
+            if(sec.data.length === 0) return;
+            
+            // 优化：使用 scroll-margin-top 替代空锚点
+            const title = document.createElement('h3');
+            title.className = "section-title";
+            title.id = `section-${sec.id}`;
+            title.innerHTML = `${sec.name} <small style="color:#666; font-weight:normal; font-size:12px;">(共${sec.data.length}题)</small>`;
+            container.appendChild(title);
+
+            sec.data.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = `q-${q.id}`;
+                
+                let optsHtml = '';
+                q.options.forEach(opt => {
+                    const key = opt.trim().charAt(0).toUpperCase();
+                    const txt = opt.replace(/^[A-F][\.\、\s]+/, '');
+                    optsHtml += `
+                        <label class="option-item" id="lbl-${q.id}-${key}">
+                            <input type="${sec.type}" name="${q.id}" value="${key}" 
+                                   onchange="handleAnswer('${q.id}', '${sec.type}', '${sec.id}')">
+                            <div style="flex:1;">
+                                <span style="font-weight:bold; margin-right:5px;">${key}.</span>${txt}
+                            </div>
+                        </label>`;
+                });
+
+                card.innerHTML = `
+                    <div class="q-header">
+                        <span class="q-tag">${sec.name.substr(0,2)}</span>
+                        <span>${globalIdx}. ${q.question}</span>
+                    </div>
+                    <div class="options">${optsHtml}</div>
+                    <div class="analysis-box">
+                        <div style="margin-bottom:5px;"><strong>✅ 正确答案：${q.answer}</strong></div>
+                        <div>📖 ${q.analysis || '暂无解析'}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+                globalIdx++;
+            });
+        });
+    }
+
+    // 【关键修复 2】完善多选进度统计：支持减法
+    function handleAnswer(qId, type, sectionId) {
+        if(isExamFinished) return;
+        
+        const inputs = document.getElementsByName(qId);
+        let val = [];
+        
+        // 1. 获取当前勾选状态 + 视觉反馈
+        for(let inp of inputs) {
+            const lbl = document.getElementById(`lbl-${qId}-${inp.value}`);
+            if(inp.checked) {
+                val.push(inp.value);
+                lbl.classList.add('selected');
+            } else {
+                if(type === 'radio' || !inp.checked) lbl.classList.remove('selected');
+            }
+        }
+
+        const finalVal = type === 'radio' ? (val[0]||'') : val.sort().join('');
+        
+        // 获取旧值（核心：用于判断状态变化）
+        const oldVal = userAnswers[qId] || "";
+        
+        userAnswers[qId] = finalVal;
+
+        // 2. 进度统计逻辑
+        // 如果旧值为空，新值不为空 => 这是新做的题 => +1
+        if (!oldVal && finalVal) {
+            progressStats[sectionId]++;
+            updateProgressUI();
+        } 
+        // 如果旧值不为空，新值为空（多选全取消了）=> 这是撤销了题 => -1
+        else if (oldVal && !finalVal) {
+            progressStats[sectionId]--;
+            updateProgressUI();
+        }
+    }
+
+    function updateProgressUI() {
+        document.getElementById('prog-single').innerText = `${progressStats.single}/150`;
+        document.getElementById('prog-multi').innerText = `${progressStats.multi}/100`;
+        document.getElementById('prog-tf').innerText = `${progressStats.tf}/50`;
+    }
+
+    function updateTimer() {
+        if(timeLeft > 0) {
+            timeLeft--;
+            const m = Math.floor(timeLeft/60).toString().padStart(2,'0');
+            const s = (timeLeft%60).toString().padStart(2,'0');
+            const tEl = document.getElementById('timer');
+            tEl.innerText = `${m}:${s}`;
+            if(timeLeft < 300) tEl.style.color = 'red';
+        } else {
+            submitExam(false);
+        }
+    }
+
+    function scrollToSection(secId) {
+        const el = document.getElementById(`section-${secId}`);
+        if(el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function submitExam(manual) {
+        if(manual && !confirm("确定要交卷吗？")) return;
+        
+        clearInterval(timerId);
+        isExamFinished = true;
+        window.onbeforeunload = null;
+
+        let correct = 0;
+        currentPaper.forEach(q => {
+            const uAns = userAnswers[q.id] || "";
+            const el = document.getElementById(`q-${q.id}`);
+            const inps = document.getElementsByName(q.id);
+            for(let inp of inps) inp.disabled = true;
+
+            if(uAns === q.answer) {
+                correct++;
+                el.classList.add('correct-ans');
+            } else {
+                el.classList.add('wrong-ans');
+                el.classList.add('show-analysis');
+            }
+        });
+
+        const score = ((correct / 300) * 100).toFixed(1).replace(/\.0$/, '');
+        saveHistory(score, 3600 - timeLeft);
+
+        document.getElementById('score-display').innerText = score;
+        document.getElementById('correct-count').innerText = correct;
+        
+        document.getElementById('main-header').style.display = 'flex'; // 恢复Logo显示
+        document.getElementById('exam-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+
+    // 优化：进入复习模式（切换顶部栏）
+    function reviewWrong() {
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('exam-screen').style.display = 'block';
+        
+        // 切换顶部栏
+        document.getElementById('exam-top-bar').style.display = 'none';
+        document.getElementById('review-top-bar').style.display = 'flex';
+        // 隐藏底部交卷按钮
+        document.getElementById('exam-bottom-action').style.display = 'none';
+
+        // 默认开启“只看错题”
+        isWrongOnlyMode = false; // 重置
+        toggleWrongOnly(document.getElementById('filter-btn'));
+        
+        window.scrollTo(0,0);
+    }
+
+    // 优化：只看错题逻辑
+    function toggleWrongOnly(btn) {
+        isWrongOnlyMode = !isWrongOnlyMode;
+        
+        const allCards = document.querySelectorAll('.question-card');
+        const headers = document.querySelectorAll('.section-title');
+
+        allCards.forEach(card => {
+            if (isWrongOnlyMode) {
+                // 如果是正确的，或者是没答且没做错的(理论上不存在)，隐藏
+                if (!card.classList.contains('wrong-ans')) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = 'block';
+                }
+            } else {
+                card.style.display = 'block';
+            }
+        });
+
+        // 隐藏/显示大标题 (如果该大题下没有错题，是否隐藏标题看需求，这里简单处理为：只看错题时隐藏所有标题，更紧凑)
+        headers.forEach(h => {
+            h.style.display = isWrongOnlyMode ? 'none' : 'block';
+        });
+
+        // 按钮样式反馈
+        btn.innerText = isWrongOnlyMode ? '显示全部' : '只看错题';
+        btn.style.background = isWrongOnlyMode ? '#ffc107' : '#fff';
+    }
+
+    // ================= 历史记录 =================
+    function saveHistory(score, durationSec) {
+        const historyItem = {
+            date: new Date().toLocaleString(),
+            score: score,
+            duration: formatDuration(durationSec)
+        };
+        let history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
+        history.unshift(historyItem);
+        localStorage.setItem('kk_exam_history', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const container = document.getElementById('history-list-container');
+        const history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
+        
+        if (history.length === 0) {
+            container.innerHTML = '<p style="color:#999; font-size:12px; text-align:center; padding:10px;">暂无练习记录，加油！</p>';
+            return;
+        }
+
+        let html = `
+        <table class="history-table">
+            <thead>
+                <tr><th>时间</th><th>耗时</th><th>得分</th></tr>
+            </thead>
+            <tbody>
+        `;
+        history.slice(0, 5).forEach(item => {
+            html += `<tr><td>${item.date.split(' ')[0]}</td><td>${item.duration}</td><td class="history-score">${item.score}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function clearHistory() {
+        if(confirm("确定要清空所有历史记录吗？")) {
+            localStorage.removeItem('kk_exam_history');
+            renderHistory();
+        }
+    }
+
+    function formatDuration(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}分${s}秒`;
+    }
+</script>
+
+</body>
+</html>
