@@ -22,7 +22,7 @@
             margin: 0; padding: 0;
             color: var(--text);
             line-height: 1.5;
-            -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
+            -webkit-overflow-scrolling: touch; 
             display: flex; flex-direction: column;
             min-height: 100vh;
         }
@@ -35,7 +35,7 @@
             width: 100%;
         }
 
-        /* ================= Header & Logo ================= */
+        /* Header */
         .header {
             text-align: center; margin-bottom: 20px; padding-bottom: 10px;
             border-bottom: 2px solid var(--primary);
@@ -49,7 +49,7 @@
         .header h1 { color: var(--primary); margin: 5px 0; font-size: 22px; }
         .sub-title { color: #666; font-size: 13px; }
 
-        /* ================= 通用组件 ================= */
+        /* Components */
         .card-box {
             background: var(--card); padding: 20px; border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -63,7 +63,7 @@
         .btn.danger { background: var(--accent); box-shadow: 0 3px #c9302c; }
         .btn.secondary { background: #6c757d; box-shadow: 0 3px #545b62; }
 
-        /* ================= 历史记录样式 ================= */
+        /* History */
         #history-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px; }
         .history-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
         .history-table th { text-align: left; color: #666; border-bottom: 1px solid #eee; padding: 5px; }
@@ -71,7 +71,7 @@
         .history-score { color: var(--accent); font-weight: bold; }
         .clear-hist-btn { background: none; border: none; color: #999; font-size: 12px; text-decoration: underline; margin-top: 10px; padding: 5px; }
 
-        /* ================= 考试界面 (单行紧凑布局) ================= */
+        /* Exam Screen */
         #exam-screen { display: none; padding-top: 5px; }
         
         .top-bar-compact {
@@ -79,14 +79,12 @@
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin: -15px -15px 15px -15px; /* 抵消 container padding */
+            margin: -15px -15px 15px -15px;
             padding: 8px 10px;
-            
             display: flex; align-items: center; justify-content: space-between; gap: 5px;
             transition: all 0.3s;
         }
 
-        /* 复习模式专用样式 */
         .top-bar-review {
             background: var(--review-bg);
             border-bottom: 1px solid #ffeeba;
@@ -97,7 +95,6 @@
             white-space: nowrap;
         }
 
-        /* 中间导航条 */
         .nav-compact-group { display: flex; flex: 1; justify-content: center; gap: 4px; }
         .mini-nav-btn {
             background: #f0f2f5; border: 1px solid #e1e4e8; border-radius: 4px;
@@ -115,18 +112,16 @@
             background: var(--accent);
         }
 
-        /* 题型标题优化：利用 scroll-margin-top 解决遮挡 */
         h3.section-title {
             margin: 20px 0 10px 0;
-            scroll-margin-top: 70px; /* 关键：浏览器自动预留顶部空间 */
+            scroll-margin-top: 70px; 
         }
 
-        /* ================= 题目卡片与选项 ================= */
+        /* Question Card */
         .question-card { background: var(--card); padding: 15px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
         .q-header { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
         .q-tag { background: var(--primary); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: 3px; }
         
-        /* 选项触控优化 */
         .option-item {
             display: flex; align-items: flex-start; min-height: 48px;
             margin: 10px 0; padding: 12px;
@@ -136,13 +131,12 @@
         .option-item input { margin-top: 4px; margin-right: 10px; transform: scale(1.3); }
         .option-item.selected { background: #e8f5e9; border-color: var(--primary); color: var(--primary); font-weight: 500; }
         
-        /* 解析与结果 */
         .analysis-box { background: var(--review-bg); padding: 15px; margin-top: 15px; border-radius: 8px; color: var(--review-text); display: none; font-size: 14px; }
         .show-analysis .analysis-box { display: block; }
         .wrong-ans .q-header { color: var(--accent); }
         .wrong-ans .option-item.selected { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
 
-        /* ================= Footer ================= */
+        /* Footer */
         .footer {
             text-align: center; padding: 20px 0;
             font-size: 12px; color: #aaa;
@@ -183,22 +177,13 @@
     </div>
 
     <div id="exam-screen">
-        
         <div class="top-bar-compact" id="exam-top-bar">
             <div class="timer-compact" id="timer">60:00</div>
-            
             <div class="nav-compact-group">
-                <div class="mini-nav-btn" onclick="scrollToSection('single')">
-                    <b>单选</b><span id="prog-single">0/150</span>
-                </div>
-                <div class="mini-nav-btn" onclick="scrollToSection('multi')">
-                    <b>多选</b><span id="prog-multi">0/100</span>
-                </div>
-                <div class="mini-nav-btn" onclick="scrollToSection('tf')">
-                    <b>判断</b><span id="prog-tf">0/50</span>
-                </div>
+                <div class="mini-nav-btn" onclick="scrollToSection('single')"><b>单选</b><span id="prog-single">0/150</span></div>
+                <div class="mini-nav-btn" onclick="scrollToSection('multi')"><b>多选</b><span id="prog-multi">0/100</span></div>
+                <div class="mini-nav-btn" onclick="scrollToSection('tf')"><b>判断</b><span id="prog-tf">0/50</span></div>
             </div>
-
             <button class="btn danger submit-compact-btn" onclick="submitExam(true)">交卷</button>
         </div>
 
@@ -234,21 +219,20 @@
 
     <div class="footer">
         版权所有 &copy; 2025 军事知识竞赛模拟系统<br>
-        Created By <span>Kingkong</span> (kingkongch@qq.com)
+        Created By <span>Kingkong</span>
     </div>
 </div>
 
 <script src="questions_data.js"></script>
 
 <script>
-    // 全局变量
     let currentPaper = [];
     let userAnswers = {}; 
     let progressStats = { single: 0, multi: 0, tf: 0 };
     let timeLeft = 3600; 
     let timerId = null;
     let isExamFinished = false;
-    let isWrongOnlyMode = false; // 错题筛选状态
+    let isWrongOnlyMode = false;
 
     window.onload = function() { renderHistory(); };
 
@@ -261,7 +245,6 @@
         return arr;
     }
 
-    // 防误触保护
     window.onbeforeunload = function(e) {
         if (!isExamFinished && document.getElementById('exam-screen').style.display === 'block') {
             e.returnValue = '考试进行中，离开将丢失进度';
@@ -275,10 +258,7 @@
             return;
         }
 
-        // 【核心修复】必须清空上一轮的答题记录！
         userAnswers = {}; 
-        
-        // 重置计数
         progressStats = { single: 0, multi: 0, tf: 0 };
         updateProgressUI();
 
@@ -289,7 +269,6 @@
         currentPaper = [...singles, ...multis, ...tfs];
         renderPaper(singles, multis, tfs);
 
-        // 切换界面
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('main-header').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
@@ -326,14 +305,11 @@
                 
                 let optsHtml = '';
                 
-                // 【核心修复】使用 index 强制生成 A,B,C,D
-                // 解决判断题只有"正确/错误"中文而没有字母前缀导致无法匹配的问题
                 q.options.forEach((opt, index) => {
-                    // String.fromCharCode(65) 是 'A'
+                    // 强制生成 A, B, C, D 作为 Key
                     const key = String.fromCharCode(65 + index); 
-                    
-                    // 移除选项文本中可能存在的 "A." 或 "B." 前缀，只保留文字
-                    const txt = opt.replace(/^[A-F][\.\、\s]+/, '');
+                    // 显示用的文本，移除已有的 "A." 等前缀
+                    const txt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
                     
                     optsHtml += `
                         <label class="option-item" id="lbl-${q.id}-${key}">
@@ -418,6 +394,7 @@
         }
     }
 
+    // 【重要修改】阅卷函数：智能翻译答案
     function submitExam(manual) {
         if(manual && !confirm("确定要交卷吗？")) return;
         
@@ -432,8 +409,32 @@
             const inps = document.getElementsByName(q.id);
             for(let inp of inps) inp.disabled = true;
 
-            // 简单的答案比对，忽略大小写
-            if(uAns === q.answer) {
+            // --- 核心修复逻辑 ---
+            // 获取数据库里的原始答案（去除首尾空格）
+            let correctKey = q.answer.trim();
+            
+            // 判断：如果答案不是纯字母（比如是汉字“正确”），我们就去选项里找它对应的是A还是B
+            // 正则说明：/^[A-Z]+$/i 测试是否全是字母
+            const isLetterOnly = /^[A-Z]+$/i.test(correctKey);
+
+            if (!isLetterOnly) {
+                // 遍历该题目的选项
+                q.options.forEach((opt, index) => {
+                    // 清洗选项文本（和渲染时逻辑一样，去掉 "A." 等前缀）
+                    const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
+                    // 如果清洗后的选项文本 和 答案文本 一样
+                    if (optTxt === correctKey) {
+                        // 把它翻译成字母：0->A, 1->B
+                        correctKey = String.fromCharCode(65 + index);
+                    }
+                });
+            } else {
+                // 如果本来就是字母（如 "ABC"），转大写统一一下即可
+                correctKey = correctKey.toUpperCase();
+            }
+            // ------------------
+
+            if(uAns === correctKey) {
                 correct++;
                 el.classList.add('correct-ans');
             } else {
@@ -448,7 +449,7 @@
         document.getElementById('score-display').innerText = score;
         document.getElementById('correct-count').innerText = correct;
         
-        document.getElementById('main-header').style.display = 'flex'; // 恢复Logo显示
+        document.getElementById('main-header').style.display = 'flex';
         document.getElementById('exam-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
         window.scrollTo(0,0);
