@@ -8,7 +8,8 @@
         :root {
             --primary: #2d5a27;   /* 主色调：深绿 */
             --accent: #d9534f;    /* 强调色：红色 */
-            --review-bg: #fff3cd; /* 复习模式背景 */
+            --blue: #007bff;      /* 已做：蓝色 */
+            --review-bg: #fff3cd; 
             --review-text: #856404;
             --bg: #f4f4f9;
             --card: #fff;
@@ -31,11 +32,12 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 15px;
+            padding-bottom: 80px; /* 为悬浮按钮留出空间 */
             flex: 1;
             width: 100%;
         }
 
-        /* Header */
+        /* ================= Header ================= */
         .header {
             text-align: center; margin-bottom: 20px; padding-bottom: 10px;
             border-bottom: 2px solid var(--primary);
@@ -49,7 +51,7 @@
         .header h1 { color: var(--primary); margin: 5px 0; font-size: 22px; }
         .sub-title { color: #666; font-size: 13px; }
 
-        /* Components */
+        /* ================= Components ================= */
         .card-box {
             background: var(--card); padding: 20px; border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -63,7 +65,7 @@
         .btn.danger { background: var(--accent); box-shadow: 0 3px #c9302c; }
         .btn.secondary { background: #6c757d; box-shadow: 0 3px #545b62; }
 
-        /* History */
+        /* ================= History ================= */
         #history-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px; }
         .history-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
         .history-table th { text-align: left; color: #666; border-bottom: 1px solid #eee; padding: 5px; }
@@ -71,11 +73,11 @@
         .history-score { color: var(--accent); font-weight: bold; }
         .clear-hist-btn { background: none; border: none; color: #999; font-size: 12px; text-decoration: underline; margin-top: 10px; padding: 5px; }
 
-        /* Exam Screen */
+        /* ================= Exam Screen ================= */
         #exam-screen { display: none; padding-top: 5px; }
         
         .top-bar-compact {
-            position: sticky; top: 0; z-index: 1000;
+            position: sticky; top: 0; z-index: 900;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -95,30 +97,19 @@
             white-space: nowrap;
         }
 
-        .nav-compact-group { display: flex; flex: 1; justify-content: center; gap: 4px; }
-        .mini-nav-btn {
-            background: #f0f2f5; border: 1px solid #e1e4e8; border-radius: 4px;
-            padding: 4px 6px; font-size: 11px; color: #555;
-            text-align: center; cursor: pointer; line-height: 1.2;
-            min-width: 55px;
-        }
-        .mini-nav-btn b { display: block; font-size: 12px; color: #333; }
-        .mini-nav-btn span { font-size: 10px; color: #888; }
-        .mini-nav-btn:active { background: #e2e6ea; }
-
+        /* Submit Button */
         .submit-compact-btn {
-            padding: 6px 10px; font-size: 13px; margin: 0; 
+            padding: 6px 12px; font-size: 13px; margin: 0; 
             box-shadow: none; width: auto; white-space: nowrap;
             background: var(--accent);
         }
 
-        h3.section-title {
-            margin: 20px 0 10px 0;
-            scroll-margin-top: 70px; 
-        }
-
         /* Question Card */
-        .question-card { background: var(--card); padding: 15px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .question-card { 
+            background: var(--card); padding: 15px; margin-bottom: 20px; 
+            border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
+            scroll-margin-top: 80px; /* 关键：确保跳转后不被顶部栏遮挡 */
+        }
         .q-header { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
         .q-tag { background: var(--primary); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: 3px; }
         
@@ -135,6 +126,74 @@
         .show-analysis .analysis-box { display: block; }
         .wrong-ans .q-header { color: var(--accent); }
         .wrong-ans .option-item.selected { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+
+        /* ================= 答题卡系统 (New) ================= */
+        /* 1. 悬浮按钮 */
+        .fab-card-btn {
+            position: fixed; bottom: 30px; right: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--primary); color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; cursor: pointer; transition: transform 0.2s;
+            font-size: 10px; line-height: 1.2;
+        }
+        .fab-card-btn:active { transform: scale(0.95); }
+        .fab-card-btn i { font-size: 20px; font-style: normal; font-weight: bold; margin-bottom: 2px; }
+
+        /* 2. 抽屉弹窗 */
+        .card-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2100;
+            display: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .card-modal.active { display: flex; opacity: 1; }
+        .card-content {
+            background: #fff; width: 100%; height: 80%;
+            margin-top: auto; /* 底部对齐 */
+            border-radius: 20px 20px 0 0;
+            display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.3s;
+        }
+        .card-modal.active .card-content { transform: translateY(0); }
+
+        /* 3. 弹窗头部 */
+        .card-header {
+            padding: 15px; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { margin: 0; font-size: 18px; color: var(--primary); }
+        .close-card-btn { background: none; border: none; font-size: 24px; color: #999; padding: 0 10px; }
+
+        /* 4. 弹窗内容区 (可滚动) */
+        .card-body {
+            flex: 1; overflow-y: auto; padding: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 5. 分组折叠标题 */
+        .card-section { margin-bottom: 20px; }
+        .card-sec-title {
+            background: #f8f9fa; padding: 8px 12px; font-weight: bold; font-size: 14px;
+            color: #555; border-radius: 6px; margin-bottom: 10px;
+            display: flex; justify-content: space-between;
+        }
+        
+        /* 6. 网格布局 */
+        .card-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 10px;
+        }
+        .card-item {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #fff; border: 1px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: #666; font-weight: bold;
+            cursor: pointer; transition: all 0.1s;
+        }
+        /* 状态颜色 */
+        .card-item.answered { background: var(--blue); color: white; border-color: var(--blue); }
+        .card-item.correct { background: var(--primary); color: white; border-color: var(--primary); }
+        .card-item.wrong { background: var(--accent); color: white; border-color: var(--accent); }
 
         /* Footer */
         .footer {
@@ -179,11 +238,7 @@
     <div id="exam-screen">
         <div class="top-bar-compact" id="exam-top-bar">
             <div class="timer-compact" id="timer">60:00</div>
-            <div class="nav-compact-group">
-                <div class="mini-nav-btn" onclick="scrollToSection('single')"><b>单选</b><span id="prog-single">0/150</span></div>
-                <div class="mini-nav-btn" onclick="scrollToSection('multi')"><b>多选</b><span id="prog-multi">0/100</span></div>
-                <div class="mini-nav-btn" onclick="scrollToSection('tf')"><b>判断</b><span id="prog-tf">0/50</span></div>
-            </div>
+            <div style="flex:1;"></div>
             <button class="btn danger submit-compact-btn" onclick="submitExam(true)">交卷</button>
         </div>
 
@@ -200,6 +255,22 @@
         <div id="exam-bottom-action" style="padding: 20px 0;">
             <button class="btn danger" onclick="submitExam(true)">确认提交试卷</button>
         </div>
+
+        <div class="fab-card-btn" id="fab-btn" onclick="toggleAnswerCard()">
+            <i>📄</i>
+            <span id="fab-progress">0/300</span>
+        </div>
+    </div>
+
+    <div class="card-modal" id="answer-card-modal" onclick="if(event.target===this) toggleAnswerCard()">
+        <div class="card-content">
+            <div class="card-header">
+                <h3>答题卡</h3>
+                <button class="close-card-btn" onclick="toggleAnswerCard()">×</button>
+            </div>
+            <div class="card-body" id="answer-card-body">
+                </div>
+        </div>
     </div>
 
     <div id="result-screen" class="card-box" style="display:none; text-align:center;">
@@ -209,7 +280,7 @@
         </div>
         <p>答对: <strong id="correct-count">0</strong> / 300 题</p>
         <div style="background:#fff3cd; padding:10px; border-radius:6px; color:#856404; font-size:14px; margin:20px 0;">
-            错题已标红并显示解析，向下滑动查看
+            错题已标红并显示解析，可点击右下角答题卡快速查看
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
             <button class="btn secondary" onclick="reviewWrong()">查看错题</button>
@@ -228,11 +299,13 @@
 <script>
     let currentPaper = [];
     let userAnswers = {}; 
-    let progressStats = { single: 0, multi: 0, tf: 0 };
     let timeLeft = 3600; 
     let timerId = null;
     let isExamFinished = false;
     let isWrongOnlyMode = false;
+
+    // 全局题号映射，用于答题卡跳转
+    let globalIndexMap = {}; 
 
     window.onload = function() { renderHistory(); };
 
@@ -259,15 +332,18 @@
         }
 
         userAnswers = {}; 
-        progressStats = { single: 0, multi: 0, tf: 0 };
-        updateProgressUI();
-
+        
         const singles = shuffle([...QUESTION_DB.single]).slice(0, 150);
         const multis = shuffle([...QUESTION_DB.multi]).slice(0, 100);
         const tfs = shuffle([...QUESTION_DB.tf]).slice(0, 50);
 
         currentPaper = [...singles, ...multis, ...tfs];
+        
+        // 渲染试卷
         renderPaper(singles, multis, tfs);
+        // 初始化答题卡
+        initAnswerCard(singles, multis, tfs);
+        updateFabProgress();
 
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('main-header').style.display = 'none';
@@ -282,6 +358,7 @@
         const container = document.getElementById('paper-content');
         container.innerHTML = '';
         let globalIdx = 1;
+        globalIndexMap = {}; // 重置映射
 
         const sections = [
             { id: 'single', name: '一、单选题', data: singles, type: 'radio' },
@@ -294,7 +371,6 @@
             
             const title = document.createElement('h3');
             title.className = "section-title";
-            title.id = `section-${sec.id}`;
             title.innerHTML = `${sec.name} <small style="color:#666; font-weight:normal; font-size:12px;">(共${sec.data.length}题)</small>`;
             container.appendChild(title);
 
@@ -303,18 +379,18 @@
                 card.className = 'question-card';
                 card.id = `q-${q.id}`;
                 
-                let optsHtml = '';
+                // 记录题目ID与全局序号的对应关系
+                globalIndexMap[q.id] = globalIdx;
                 
+                let optsHtml = '';
                 q.options.forEach((opt, index) => {
-                    // 强制生成 A, B, C, D 作为 Key
                     const key = String.fromCharCode(65 + index); 
-                    // 显示用的文本，移除已有的 "A." 等前缀
                     const txt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
                     
                     optsHtml += `
                         <label class="option-item" id="lbl-${q.id}-${key}">
                             <input type="${sec.type}" name="${q.id}" value="${key}" 
-                                   onchange="handleAnswer('${q.id}', '${sec.type}', '${sec.id}')">
+                                   onchange="handleAnswer('${q.id}', '${sec.type}')">
                             <div style="flex:1;">
                                 <span style="font-weight:bold; margin-right:5px;">${key}.</span>${txt}
                             </div>
@@ -338,7 +414,91 @@
         });
     }
 
-    function handleAnswer(qId, type, sectionId) {
+    // ================= 答题卡核心逻辑 =================
+
+    function initAnswerCard(singles, multis, tfs) {
+        const body = document.getElementById('answer-card-body');
+        body.innerHTML = '';
+        let startIdx = 1;
+
+        const sections = [
+            { name: '一、单选题', count: singles.length, data: singles },
+            { name: '二、多选题', count: multis.length, data: multis },
+            { name: '三、判断题', count: tfs.length, data: tfs }
+        ];
+
+        sections.forEach(sec => {
+            if(sec.count === 0) return;
+
+            // 创建分组容器
+            const secDiv = document.createElement('div');
+            secDiv.className = 'card-section';
+            
+            // 标题
+            secDiv.innerHTML = `<div class="card-sec-title">${sec.name} <span>${sec.count}题</span></div>`;
+            
+            // 网格容器
+            const grid = document.createElement('div');
+            grid.className = 'card-grid';
+
+            // 生成圆圈
+            sec.data.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'card-item';
+                item.id = `card-btn-${q.id}`; // 方便后续查找
+                item.innerText = startIdx;
+                item.onclick = function() { scrollToQuestion(q.id); };
+                grid.appendChild(item);
+                startIdx++;
+            });
+
+            secDiv.appendChild(grid);
+            body.appendChild(secDiv);
+        });
+    }
+
+    function toggleAnswerCard() {
+        const modal = document.getElementById('answer-card-modal');
+        const isActive = modal.classList.contains('active');
+        if (isActive) {
+            modal.classList.remove('active');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        } else {
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('active'); }, 10);
+        }
+    }
+
+    function scrollToQuestion(qId) {
+        // 关闭答题卡
+        toggleAnswerCard();
+        // 滚动定位
+        const el = document.getElementById(`q-${qId}`);
+        if(el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 可选：高亮一下题目
+            el.style.border = "2px solid var(--primary)";
+            setTimeout(() => { el.style.border = "none"; }, 2000);
+        }
+    }
+
+    function updateCardStatus(qId, statusClass) {
+        const btn = document.getElementById(`card-btn-${qId}`);
+        if(btn) {
+            // 清除旧状态
+            btn.classList.remove('answered', 'correct', 'wrong');
+            if(statusClass) btn.classList.add(statusClass);
+        }
+    }
+
+    function updateFabProgress() {
+        const answeredCount = Object.keys(userAnswers).filter(k => userAnswers[k]).length;
+        document.getElementById('fab-progress').innerText = `${answeredCount}/300`;
+    }
+
+    // ===============================================
+
+    function handleAnswer(qId, type) {
         if(isExamFinished) return;
         
         const inputs = document.getElementsByName(qId);
@@ -356,22 +516,15 @@
 
         const finalVal = type === 'radio' ? (val[0]||'') : val.sort().join('');
         const oldVal = userAnswers[qId] || "";
-        
         userAnswers[qId] = finalVal;
 
-        if (!oldVal && finalVal) {
-            progressStats[sectionId]++;
-            updateProgressUI();
-        } else if (oldVal && !finalVal) {
-            progressStats[sectionId]--;
-            updateProgressUI();
+        // 【联动】更新答题卡状态
+        if(finalVal) {
+            updateCardStatus(qId, 'answered');
+        } else {
+            updateCardStatus(qId, ''); // 取消选择变回白色
         }
-    }
-
-    function updateProgressUI() {
-        document.getElementById('prog-single').innerText = `${progressStats.single}/150`;
-        document.getElementById('prog-multi').innerText = `${progressStats.multi}/100`;
-        document.getElementById('prog-tf').innerText = `${progressStats.tf}/50`;
+        updateFabProgress();
     }
 
     function updateTimer() {
@@ -387,14 +540,23 @@
         }
     }
 
-    function scrollToSection(secId) {
-        const el = document.getElementById(`section-${secId}`);
-        if(el) {
-            el.scrollIntoView({ behavior: 'smooth' });
+    // 辅助函数：获取标准答案Key（处理中文转字母）
+    function getStandardAnswer(q) {
+        let correctKey = q.answer.trim();
+        const isLetterOnly = /^[A-Z]+$/i.test(correctKey);
+        if (!isLetterOnly) {
+            q.options.forEach((opt, index) => {
+                const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
+                if (optTxt === correctKey) {
+                    correctKey = String.fromCharCode(65 + index);
+                }
+            });
+        } else {
+            correctKey = correctKey.toUpperCase();
         }
+        return correctKey;
     }
 
-    // 【重要修改】阅卷函数：智能翻译答案
     function submitExam(manual) {
         if(manual && !confirm("确定要交卷吗？")) return;
         
@@ -402,65 +564,57 @@
         isExamFinished = true;
         window.onbeforeunload = null;
 
-        let correct = 0;
+        let correctCount = 0;
+        
+        // 遍历所有题目进行批改
         currentPaper.forEach(q => {
             const uAns = userAnswers[q.id] || "";
             const el = document.getElementById(`q-${q.id}`);
             const inps = document.getElementsByName(q.id);
             for(let inp of inps) inp.disabled = true;
 
-            // --- 核心修复逻辑 ---
-            // 获取数据库里的原始答案（去除首尾空格）
-            let correctKey = q.answer.trim();
-            
-            // 判断：如果答案不是纯字母（比如是汉字“正确”），我们就去选项里找它对应的是A还是B
-            // 正则说明：/^[A-Z]+$/i 测试是否全是字母
-            const isLetterOnly = /^[A-Z]+$/i.test(correctKey);
-
-            if (!isLetterOnly) {
-                // 遍历该题目的选项
-                q.options.forEach((opt, index) => {
-                    // 清洗选项文本（和渲染时逻辑一样，去掉 "A." 等前缀）
-                    const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
-                    // 如果清洗后的选项文本 和 答案文本 一样
-                    if (optTxt === correctKey) {
-                        // 把它翻译成字母：0->A, 1->B
-                        correctKey = String.fromCharCode(65 + index);
-                    }
-                });
-            } else {
-                // 如果本来就是字母（如 "ABC"），转大写统一一下即可
-                correctKey = correctKey.toUpperCase();
-            }
-            // ------------------
+            // 获取标准答案Key
+            const correctKey = getStandardAnswer(q);
 
             if(uAns === correctKey) {
-                correct++;
+                correctCount++;
                 el.classList.add('correct-ans');
+                // 【联动】答题卡变绿
+                updateCardStatus(q.id, 'correct');
             } else {
                 el.classList.add('wrong-ans');
                 el.classList.add('show-analysis');
+                // 【联动】答题卡变红
+                updateCardStatus(q.id, 'wrong');
             }
         });
 
-        const score = ((correct / 300) * 100).toFixed(1).replace(/\.0$/, '');
+        const score = ((correctCount / 300) * 100).toFixed(1).replace(/\.0$/, '');
         saveHistory(score, 3600 - timeLeft);
 
         document.getElementById('score-display').innerText = score;
-        document.getElementById('correct-count').innerText = correct;
+        document.getElementById('correct-count').innerText = correctCount;
         
         document.getElementById('main-header').style.display = 'flex';
         document.getElementById('exam-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
+        
+        // 隐藏悬浮按钮（结果页不需要）
+        document.getElementById('fab-btn').style.display = 'none';
+        
         window.scrollTo(0,0);
     }
 
     function reviewWrong() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
+        
         document.getElementById('exam-top-bar').style.display = 'none';
         document.getElementById('review-top-bar').style.display = 'flex';
         document.getElementById('exam-bottom-action').style.display = 'none';
+        
+        // 恢复悬浮按钮，方便查看错题分布
+        document.getElementById('fab-btn').style.display = 'flex';
 
         isWrongOnlyMode = false; 
         toggleWrongOnly(document.getElementById('filter-btn'));
@@ -487,6 +641,14 @@
 
         headers.forEach(h => {
             h.style.display = isWrongOnlyMode ? 'none' : 'block';
+        });
+
+        // 【联动】答题卡也只显示错题？
+        // 简单处理：只隐藏正确的圆圈可能会破坏布局，暂保持答题卡全显，用颜色区分即可。
+        // 或者我们可以让绿色的变透明：
+        const correctBtns = document.querySelectorAll('.card-item.correct');
+        correctBtns.forEach(b => {
+            b.style.opacity = isWrongOnlyMode ? '0.1' : '1';
         });
 
         btn.innerText = isWrongOnlyMode ? '显示全部' : '只看错题';
