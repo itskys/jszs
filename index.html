@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2025年知识竞赛模拟系统</title>
+    <title>2025年军事知识竞赛模拟系统</title>
     <style>
         :root {
-            --primary: #2d5a27;
-            --accent: #d9534f;
+            --primary: #2d5a27;   /* 主色调：深绿 */
+            --accent: #d9534f;    /* 强调色：红色 */
+            --review-bg: #fff3cd; /* 复习模式背景 */
+            --review-text: #856404;
             --bg: #f4f4f9;
             --card: #fff;
             --text: #333;
@@ -17,13 +19,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             color: var(--text);
             line-height: 1.5;
-            -webkit-overflow-scrolling: touch;
-            display: flex;
-            flex-direction: column;
+            -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
+            display: flex; flex-direction: column;
             min-height: 100vh;
         }
 
@@ -37,13 +37,9 @@
 
         /* ================= Header & Logo ================= */
         .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            text-align: center; margin-bottom: 20px; padding-bottom: 10px;
             border-bottom: 2px solid var(--primary);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            display: flex; flex-direction: column; align-items: center;
         }
         .logo-box {
             width: 50px; height: 50px; background: var(--primary); color: white;
@@ -75,7 +71,7 @@
         .history-score { color: var(--accent); font-weight: bold; }
         .clear-hist-btn { background: none; border: none; color: #999; font-size: 12px; text-decoration: underline; margin-top: 10px; padding: 5px; }
 
-        /* ================= 考试界面 (单行极简布局) ================= */
+        /* ================= 考试界面 (单行紧凑布局) ================= */
         #exam-screen { display: none; padding-top: 5px; }
         
         .top-bar-compact {
@@ -86,41 +82,43 @@
             margin: -15px -15px 15px -15px; /* 抵消 container padding */
             padding: 8px 10px;
             
-            /* 关键：弹性盒子，单行显示 */
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 5px;
+            display: flex; align-items: center; justify-content: space-between; gap: 5px;
+            transition: all 0.3s;
         }
 
-        /* 1. 倒计时 (最左) */
+        /* 复习模式专用样式 */
+        .top-bar-review {
+            background: var(--review-bg);
+            border-bottom: 1px solid #ffeeba;
+        }
+
         .timer-compact {
             font-family: monospace; font-size: 16px; font-weight: bold; color: var(--accent);
             white-space: nowrap;
         }
 
-        /* 2. 中间导航条 (核心优化) */
-        .nav-compact-group {
-            display: flex; flex: 1; justify-content: center; gap: 4px;
-        }
+        /* 中间导航条 */
+        .nav-compact-group { display: flex; flex: 1; justify-content: center; gap: 4px; }
         .mini-nav-btn {
             background: #f0f2f5; border: 1px solid #e1e4e8; border-radius: 4px;
-            padding: 4px 6px; 
-            font-size: 11px; color: #555;
-            text-align: center; cursor: pointer;
-            line-height: 1.2;
-            min-width: 55px; /* 确保最小点击宽度 */
+            padding: 4px 6px; font-size: 11px; color: #555;
+            text-align: center; cursor: pointer; line-height: 1.2;
+            min-width: 55px;
         }
-        .mini-nav-btn b { display: block; font-size: 12px; color: #333; } /* 题型文字 */
-        .mini-nav-btn span { font-size: 10px; color: #888; } /* 进度数字 */
-        
+        .mini-nav-btn b { display: block; font-size: 12px; color: #333; }
+        .mini-nav-btn span { font-size: 10px; color: #888; }
         .mini-nav-btn:active { background: #e2e6ea; }
 
-        /* 3. 交卷按钮 (最右) */
         .submit-compact-btn {
             padding: 6px 10px; font-size: 13px; margin: 0; 
             box-shadow: none; width: auto; white-space: nowrap;
             background: var(--accent);
+        }
+
+        /* 题型标题优化：利用 scroll-margin-top 解决遮挡 */
+        h3.section-title {
+            margin: 20px 0 10px 0;
+            scroll-margin-top: 70px; /* 关键：浏览器自动预留顶部空间 */
         }
 
         /* ================= 题目卡片与选项 ================= */
@@ -128,6 +126,7 @@
         .q-header { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
         .q-tag { background: var(--primary); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: 3px; }
         
+        /* 选项触控优化 */
         .option-item {
             display: flex; align-items: flex-start; min-height: 48px;
             margin: 10px 0; padding: 12px;
@@ -138,7 +137,7 @@
         .option-item.selected { background: #e8f5e9; border-color: var(--primary); color: var(--primary); font-weight: 500; }
         
         /* 解析与结果 */
-        .analysis-box { background: #fff3cd; padding: 15px; margin-top: 15px; border-radius: 8px; color: #856404; display: none; font-size: 14px; }
+        .analysis-box { background: var(--review-bg); padding: 15px; margin-top: 15px; border-radius: 8px; color: var(--review-text); display: none; font-size: 14px; }
         .show-analysis .analysis-box { display: block; }
         .wrong-ans .q-header { color: var(--accent); }
         .wrong-ans .option-item.selected { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
@@ -156,7 +155,7 @@
 <div class="container">
     <div class="header" id="main-header">
         <div class="logo-box">KK</div>
-        <h1>2025知识竞赛模拟系统</h1>
+        <h1>2025年军事知识竞赛模拟系统</h1>
         <div class="sub-title">闭卷机试 | 限时60分钟 | 总分100分</div>
     </div>
 
@@ -184,30 +183,36 @@
     </div>
 
     <div id="exam-screen">
-        <div class="top-bar-compact">
+        
+        <div class="top-bar-compact" id="exam-top-bar">
             <div class="timer-compact" id="timer">60:00</div>
             
             <div class="nav-compact-group">
                 <div class="mini-nav-btn" onclick="scrollToSection('single')">
-                    <b>单选</b>
-                    <span id="prog-single">0/150</span>
+                    <b>单选</b><span id="prog-single">0/150</span>
                 </div>
                 <div class="mini-nav-btn" onclick="scrollToSection('multi')">
-                    <b>多选</b>
-                    <span id="prog-multi">0/100</span>
+                    <b>多选</b><span id="prog-multi">0/100</span>
                 </div>
                 <div class="mini-nav-btn" onclick="scrollToSection('tf')">
-                    <b>判断</b>
-                    <span id="prog-tf">0/50</span>
+                    <b>判断</b><span id="prog-tf">0/50</span>
                 </div>
             </div>
 
             <button class="btn danger submit-compact-btn" onclick="submitExam(true)">交卷</button>
         </div>
 
+        <div class="top-bar-compact top-bar-review" id="review-top-bar" style="display:none;">
+            <div style="font-weight:bold; color:var(--review-text); font-size:14px;">📖 错题解析</div>
+            <div style="display:flex; gap:10px;">
+                <button class="mini-nav-btn" id="filter-btn" onclick="toggleWrongOnly(this)" style="width:auto; padding:5px 12px; background:#fff; border-color:#d4a845;">只看错题</button>
+                <button class="submit-compact-btn" onclick="location.reload()" style="background:#6c757d;">退出</button>
+            </div>
+        </div>
+
         <div id="paper-content"></div>
         
-        <div style="padding: 20px 0;">
+        <div id="exam-bottom-action" style="padding: 20px 0;">
             <button class="btn danger" onclick="submitExam(true)">确认提交试卷</button>
         </div>
     </div>
@@ -228,7 +233,7 @@
     </div>
 
     <div class="footer">
-        版权所有 &copy; 2025知识竞赛模拟系统<br>
+        版权所有 &copy; 2025 军事知识竞赛模拟系统<br>
         Created By <span>Kingkong</span> (kingkongch@qq.com)
     </div>
 </div>
@@ -236,17 +241,16 @@
 <script src="questions_data.js"></script>
 
 <script>
-    // 状态管理
+    // 全局变量
     let currentPaper = [];
     let userAnswers = {}; 
     let progressStats = { single: 0, multi: 0, tf: 0 };
     let timeLeft = 3600; 
     let timerId = null;
     let isExamFinished = false;
+    let isWrongOnlyMode = false; // 错题筛选状态
 
-    window.onload = function() {
-        renderHistory();
-    };
+    window.onload = function() { renderHistory(); };
 
     function shuffle(arr) {
         let m = arr.length, t, i;
@@ -257,6 +261,7 @@
         return arr;
     }
 
+    // 防误触保护
     window.onbeforeunload = function(e) {
         if (!isExamFinished && document.getElementById('exam-screen').style.display === 'block') {
             e.returnValue = '考试进行中，离开将丢失进度';
@@ -270,6 +275,10 @@
             return;
         }
 
+        // 【核心修复】必须清空上一轮的答题记录！
+        userAnswers = {}; 
+        
+        // 重置计数
         progressStats = { single: 0, multi: 0, tf: 0 };
         updateProgressUI();
 
@@ -280,10 +289,9 @@
         currentPaper = [...singles, ...multis, ...tfs];
         renderPaper(singles, multis, tfs);
 
+        // 切换界面
         document.getElementById('welcome-screen').style.display = 'none';
-        // 隐藏大标题，进一步节省考试时的空间
         document.getElementById('main-header').style.display = 'none';
-        
         document.getElementById('exam-screen').style.display = 'block';
         window.scrollTo(0, 0);
 
@@ -305,15 +313,10 @@
         sections.forEach(sec => {
             if(sec.data.length === 0) return;
             
-            const anchor = document.createElement('div');
-            anchor.id = `anchor-${sec.id}`; 
-            anchor.style.position = 'relative';
-            anchor.style.top = '-80px'; // 调整偏移量适应更矮的TopBar
-            container.appendChild(anchor);
-
             const title = document.createElement('h3');
+            title.className = "section-title";
+            title.id = `section-${sec.id}`;
             title.innerHTML = `${sec.name} <small style="color:#666; font-weight:normal; font-size:12px;">(共${sec.data.length}题)</small>`;
-            title.style.margin = "20px 0 10px 0";
             container.appendChild(title);
 
             sec.data.forEach(q => {
@@ -322,9 +325,16 @@
                 card.id = `q-${q.id}`;
                 
                 let optsHtml = '';
-                q.options.forEach(opt => {
-                    const key = opt.trim().charAt(0).toUpperCase();
+                
+                // 【核心修复】使用 index 强制生成 A,B,C,D
+                // 解决判断题只有"正确/错误"中文而没有字母前缀导致无法匹配的问题
+                q.options.forEach((opt, index) => {
+                    // String.fromCharCode(65) 是 'A'
+                    const key = String.fromCharCode(65 + index); 
+                    
+                    // 移除选项文本中可能存在的 "A." 或 "B." 前缀，只保留文字
                     const txt = opt.replace(/^[A-F][\.\、\s]+/, '');
+                    
                     optsHtml += `
                         <label class="option-item" id="lbl-${q.id}-${key}">
                             <input type="${sec.type}" name="${q.id}" value="${key}" 
@@ -369,12 +379,15 @@
         }
 
         const finalVal = type === 'radio' ? (val[0]||'') : val.sort().join('');
+        const oldVal = userAnswers[qId] || "";
         
-        const wasAnswered = userAnswers.hasOwnProperty(qId);
         userAnswers[qId] = finalVal;
 
-        if (!wasAnswered && finalVal) {
+        if (!oldVal && finalVal) {
             progressStats[sectionId]++;
+            updateProgressUI();
+        } else if (oldVal && !finalVal) {
+            progressStats[sectionId]--;
             updateProgressUI();
         }
     }
@@ -399,10 +412,9 @@
     }
 
     function scrollToSection(secId) {
-        const el = document.getElementById(`anchor-${secId}`);
+        const el = document.getElementById(`section-${secId}`);
         if(el) {
-            const top = el.getBoundingClientRect().top + window.pageYOffset - 70; // 调整滚动位置
-            window.scrollTo({ top: top, behavior: 'smooth' });
+            el.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -420,6 +432,7 @@
             const inps = document.getElementsByName(q.id);
             for(let inp of inps) inp.disabled = true;
 
+            // 简单的答案比对，忽略大小写
             if(uAns === q.answer) {
                 correct++;
                 el.classList.add('correct-ans');
@@ -435,9 +448,7 @@
         document.getElementById('score-display').innerText = score;
         document.getElementById('correct-count').innerText = correct;
         
-        // 恢复Header显示，方便看Logo
-        document.getElementById('main-header').style.display = 'flex';
-        
+        document.getElementById('main-header').style.display = 'flex'; // 恢复Logo显示
         document.getElementById('exam-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
         window.scrollTo(0,0);
@@ -446,11 +457,41 @@
     function reviewWrong() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
-        document.querySelector('.top-bar-compact').style.display = 'none';
+        document.getElementById('exam-top-bar').style.display = 'none';
+        document.getElementById('review-top-bar').style.display = 'flex';
+        document.getElementById('exam-bottom-action').style.display = 'none';
+
+        isWrongOnlyMode = false; 
+        toggleWrongOnly(document.getElementById('filter-btn'));
         window.scrollTo(0,0);
     }
 
-    // 历史记录
+    function toggleWrongOnly(btn) {
+        isWrongOnlyMode = !isWrongOnlyMode;
+        
+        const allCards = document.querySelectorAll('.question-card');
+        const headers = document.querySelectorAll('.section-title');
+
+        allCards.forEach(card => {
+            if (isWrongOnlyMode) {
+                if (!card.classList.contains('wrong-ans')) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = 'block';
+                }
+            } else {
+                card.style.display = 'block';
+            }
+        });
+
+        headers.forEach(h => {
+            h.style.display = isWrongOnlyMode ? 'none' : 'block';
+        });
+
+        btn.innerText = isWrongOnlyMode ? '显示全部' : '只看错题';
+        btn.style.background = isWrongOnlyMode ? '#ffc107' : '#fff';
+    }
+
     function saveHistory(score, durationSec) {
         const historyItem = {
             date: new Date().toLocaleString(),
