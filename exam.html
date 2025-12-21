@@ -537,22 +537,46 @@
         }
     }
 
+    // 【核心升级】获取标准答案Key（终极清洗版）
     function getStandardAnswer(q) {
-        let correctKey = q.answer.trim();
-        const isLetterOnly = /^[A-Z]+$/i.test(correctKey);
-        if (!isLetterOnly) {
+        // 1. 原始清洗：去除首尾空格
+        let raw = q.answer.trim();
+        
+        // 2. 尝试清洗掉常见的分割符号（逗号、顿号、空格），只保留文本内容
+        // 比如 "A, B" -> "AB"， "A、B" -> "AB"
+        let cleanStr = raw.replace(/[\s,\.、，。]/g, '').toUpperCase();
+
+        // 3. 判断清洗后是否全是字母 (A-Z)
+        const isLetterOnly = /^[A-Z]+$/.test(cleanStr);
+
+        if (isLetterOnly) {
+            // ==========================================
+            // 情况 A：标准答案是字母 (适用于单选、多选)
+            // ==========================================
+            // 风险规避：如果题库写的是 "BA"，我们要把它排成 "AB" 以便比对
+            return cleanStr.split('').sort().join('');
+        } else {
+            // ==========================================
+            // 情况 B：标准答案是文字 (适用于判断题 "正确/错误")
+            // ==========================================
+            // 遍历选项，找到文字对应的索引，转为 A/B
+            let mappedKey = "";
             q.options.forEach((opt, index) => {
+                // 清洗选项文本：去除 "A."、"1." 等前缀，只留内容
                 const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
-                if (optTxt === correctKey) {
-                    correctKey = String.fromCharCode(65 + index);
+                
+                // 比对：如果选项内容 == 原始答案 (比如 "正确" == "正确")
+                // 注意：这里用 raw 还是 cleanStr 取决于你的题库中文是否包含标点
+                // 通常用原始中文比对最安全，或者两者都试一下
+                if (optTxt === raw || optTxt === cleanStr) {
+                    mappedKey = String.fromCharCode(65 + index); // 0->A, 1->B
                 }
             });
-        } else {
-            correctKey = correctKey.toUpperCase();
+            
+            // 如果没找到匹配的（极罕见情况），返回原始值防止报错
+            return mappedKey || raw;
         }
-        return correctKey;
     }
-
     function submitExam(manual) {
         if(manual && !confirm("确定要交卷吗？")) return;
         
