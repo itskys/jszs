@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2025年军事知识竞赛模拟系统(简易版)</title>
+    <title>2025年知识竞赛模拟系统(简易版)</title>
     <style>
         :root {
             --primary: #2d5a27;
@@ -62,6 +62,14 @@
         .btn:active { transform: translateY(2px); box-shadow: 0 1px #1e3d1a; }
         .btn.danger { background: var(--accent); box-shadow: 0 3px #c9302c; }
         .btn.secondary { background: #6c757d; box-shadow: 0 3px #545b62; }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-group input { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; 
+            border-radius: 8px; font-size: 16px; transition: border 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); outline: none; }
 
         #history-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px; }
         .history-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
@@ -186,7 +194,7 @@
             font-size: 12px; color: #aaa;
             border-top: 1px solid #eee; margin-top: auto;
         }
-        
+
         .disclaimer-box {
             background: #fff3cd; color: #856404;
             padding: 12px; border-radius: 8px; font-size: 13px;
@@ -200,12 +208,12 @@
 <div class="container">
     <div class="header" id="main-header">
         <div class="logo-box">KK</div>
-        <h1>2025年军事知识竞赛模拟系统</h1>
+        <h1>2025年知识竞赛模拟系统</h1>
         <div class="sub-title">闭卷机试(简易版) | 限时60分钟 | 总分100分</div>
     </div>
 
     <div id="welcome-screen" class="card-box">
-        <h2 style="text-align: center; color:var(--primary); margin-top:0;">准备好了吗？</h2>
+        <h2 style="text-align: center; color:var(--primary); margin-top:0;">考生信息录入</h2>
         
         <div class="disclaimer-box">
             <strong>⚠️ 使用说明：</strong><br>
@@ -216,15 +224,24 @@
             <p><strong>🎯 考试规则：</strong></p>
             <ul style="padding-left:20px; margin:5px 0;">
                 <li><strong>题量：</strong>300题 (单选150+多选100+判断50)</li>
-                <li><strong>时长：</strong>60分钟 (倒计时结束自动交卷)</li>
-                <li><strong>记录：</strong>系统会自动保存您的练习历史</li>
+                <li><strong>时长：</strong>60分钟 (交卷后自动上传成绩)</li>
             </ul>
         </div>
-        <button class="btn" onclick="startExam()">开始考试</button>
+
+        <div class="input-group">
+            <label>姓名：</label>
+            <input type="text" id="student-name" placeholder="请输入真实姓名">
+        </div>
+        <div class="input-group">
+            <label>学号 / 班级：</label>
+            <input type="text" id="student-id" placeholder="例如：23级计算机1班">
+        </div>
+
+        <button class="btn" onclick="startExamWithCheck()">开始考试</button>
         
         <div id="history-section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>📜 练习历史</strong>
+                <strong>📜 本机练习历史</strong>
                 <button class="clear-hist-btn" onclick="clearHistory()">清空记录</button>
             </div>
             <div id="history-list-container">
@@ -273,13 +290,19 @@
 
     <div id="result-screen" class="card-box" style="display:none; text-align:center;">
         <h2 style="color:var(--primary)">考试结束</h2>
+        
+        <p style="color:#666; margin:5px 0;">考生：<strong id="result-student-name">--</strong></p>
+
         <div style="font-size:50px; font-weight:900; color:var(--primary); margin:10px 0;">
             <span id="score-display">0</span> <span style="font-size:18px; color:#666;">分</span>
         </div>
         <p>答对: <strong id="correct-count">0</strong> / 300 题</p>
+        
         <div style="background:#fff3cd; padding:10px; border-radius:6px; color:#856404; font-size:14px; margin:20px 0;">
-            错题已标红并显示解析，可点击右下角答题卡快速查看
+            <span id="upload-status">⏳ 正在上传成绩...</span><br>
+            <span style="font-size:12px; color:#999;">(错题已标红，可下滑或使用答题卡查看)</span>
         </div>
+
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
             <button class="btn secondary" onclick="reviewWrong()">查看错题</button>
             <button class="btn" onclick="location.reload()">再练一次</button>
@@ -287,7 +310,7 @@
     </div>
 
     <div class="footer">
-        版权所有 &copy; 2025 军事知识竞赛模拟系统<br>
+        版权所有 &copy; 2025 知识竞赛模拟系统<br>
         Created By <span>Kingkong</span>
     </div>
 </div>
@@ -302,6 +325,7 @@
     let isExamFinished = false;
     let isWrongOnlyMode = false;
     let globalIndexMap = {}; 
+    let currentStudent = { name: "", id: "" };
 
     window.onload = function() { renderHistory(); };
 
@@ -320,6 +344,25 @@
             return e.returnValue;
         }
     };
+
+    function startExamWithCheck() {
+        const nameInp = document.getElementById('student-name');
+        const idInp = document.getElementById('student-id');
+        
+        const name = nameInp.value.trim();
+        const id = idInp.value.trim();
+
+        if (!name || !id) {
+            alert("请先填写【姓名】和【学号/班级】，才能开始考试！");
+            nameInp.focus();
+            return;
+        }
+
+        currentStudent.name = name;
+        currentStudent.id = id;
+
+        startExam();
+    }
 
     function startExam() {
         if (typeof QUESTION_DB === 'undefined') {
@@ -369,7 +412,7 @@
         const container = document.getElementById('paper-content');
         container.innerHTML = '';
         let globalIdx = 1;
-        globalIndexMap = {};
+        globalIndexMap = {}; 
 
         const sections = [
             { id: 'single', name: '一、单选题', data: singles, type: 'radio' },
@@ -437,12 +480,9 @@
 
         sections.forEach(sec => {
             if(sec.count === 0) return;
-
             const secDiv = document.createElement('div');
             secDiv.className = 'card-section';
-            
             secDiv.innerHTML = `<div class="card-sec-title">${sec.name} <span>${sec.count}题</span></div>`;
-            
             const grid = document.createElement('div');
             grid.className = 'card-grid';
 
@@ -455,7 +495,6 @@
                 grid.appendChild(item);
                 startIdx++;
             });
-
             secDiv.appendChild(grid);
             body.appendChild(secDiv);
         });
@@ -516,11 +555,9 @@
         const oldVal = userAnswers[qId] || "";
         userAnswers[qId] = finalVal;
 
-        if(finalVal) {
-            updateCardStatus(qId, 'answered');
-        } else {
-            updateCardStatus(qId, '');
-        }
+        if(finalVal) updateCardStatus(qId, 'answered');
+        else updateCardStatus(qId, '');
+        
         updateFabProgress();
     }
 
@@ -537,46 +574,60 @@
         }
     }
 
-    // 【核心升级】获取标准答案Key（终极清洗版）
     function getStandardAnswer(q) {
-        // 1. 原始清洗：去除首尾空格
         let raw = q.answer.trim();
-        
-        // 2. 尝试清洗掉常见的分割符号（逗号、顿号、空格），只保留文本内容
-        // 比如 "A, B" -> "AB"， "A、B" -> "AB"
         let cleanStr = raw.replace(/[\s,\.、，。]/g, '').toUpperCase();
-
-        // 3. 判断清洗后是否全是字母 (A-Z)
         const isLetterOnly = /^[A-Z]+$/.test(cleanStr);
 
         if (isLetterOnly) {
-            // ==========================================
-            // 情况 A：标准答案是字母 (适用于单选、多选)
-            // ==========================================
-            // 风险规避：如果题库写的是 "BA"，我们要把它排成 "AB" 以便比对
             return cleanStr.split('').sort().join('');
         } else {
-            // ==========================================
-            // 情况 B：标准答案是文字 (适用于判断题 "正确/错误")
-            // ==========================================
-            // 遍历选项，找到文字对应的索引，转为 A/B
             let mappedKey = "";
             q.options.forEach((opt, index) => {
-                // 清洗选项文本：去除 "A."、"1." 等前缀，只留内容
                 const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
-                
-                // 比对：如果选项内容 == 原始答案 (比如 "正确" == "正确")
-                // 注意：这里用 raw 还是 cleanStr 取决于你的题库中文是否包含标点
-                // 通常用原始中文比对最安全，或者两者都试一下
                 if (optTxt === raw || optTxt === cleanStr) {
-                    mappedKey = String.fromCharCode(65 + index); // 0->A, 1->B
+                    mappedKey = String.fromCharCode(65 + index); 
                 }
             });
-            
-            // 如果没找到匹配的（极罕见情况），返回原始值防止报错
             return mappedKey || raw;
         }
     }
+
+    async function uploadScoreToCloud(score, duration, correctCount) {
+        const statusEl = document.getElementById('upload-status');
+        
+        const examData = {
+            studentName: currentStudent.name || "无名氏",
+            studentId: currentStudent.id || "无学号",
+            score: parseFloat(score),
+            duration: formatDuration(duration),
+            correctCount: correctCount,
+            submitTime: new Date().toLocaleString()
+        };
+
+        try {
+            const response = await fetch('/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(examData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                statusEl.innerHTML = "✅ <strong>成绩上传成功！</strong>";
+                statusEl.style.color = "green";
+            } else {
+                statusEl.innerHTML = "❌ <strong>上传失败：</strong>" + result.error;
+                statusEl.style.color = "red";
+            }
+        } catch (err) {
+            console.error(err);
+            statusEl.innerHTML = "⚠️ <strong>网络故障，无法上传。请截图！</strong>";
+            statusEl.style.color = "red";
+        }
+    }
+
     function submitExam(manual) {
         if(manual && !confirm("确定要交卷吗？")) return;
         
@@ -606,10 +657,15 @@
         });
 
         const score = ((correctCount / 300) * 100).toFixed(1).replace(/\.0$/, '');
-        saveHistory(score, 3600 - timeLeft);
+        const durationSec = 3600 - timeLeft;
+
+        saveHistory(score, durationSec);
+        
+        uploadScoreToCloud(score, durationSec, correctCount);
 
         document.getElementById('score-display').innerText = score;
         document.getElementById('correct-count').innerText = correctCount;
+        document.getElementById('result-student-name').innerText = currentStudent.name;
         
         document.getElementById('main-header').style.display = 'flex';
         document.getElementById('exam-screen').style.display = 'none';
@@ -623,13 +679,10 @@
     function reviewWrong() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
-        
         document.getElementById('exam-top-bar').style.display = 'none';
         document.getElementById('review-top-bar').style.display = 'flex';
         document.getElementById('exam-bottom-action').style.display = 'none';
-        
         document.getElementById('fab-btn').style.display = 'flex';
-
         isWrongOnlyMode = false; 
         toggleWrongOnly(document.getElementById('filter-btn'));
         window.scrollTo(0,0);
@@ -637,31 +690,19 @@
 
     function toggleWrongOnly(btn) {
         isWrongOnlyMode = !isWrongOnlyMode;
-        
         const allCards = document.querySelectorAll('.question-card');
         const headers = document.querySelectorAll('.section-title');
-
         allCards.forEach(card => {
             if (isWrongOnlyMode) {
-                if (!card.classList.contains('wrong-ans')) {
-                    card.style.display = 'none';
-                } else {
-                    card.style.display = 'block';
-                }
+                if (!card.classList.contains('wrong-ans')) card.style.display = 'none';
+                else card.style.display = 'block';
             } else {
                 card.style.display = 'block';
             }
         });
-
-        headers.forEach(h => {
-            h.style.display = isWrongOnlyMode ? 'none' : 'block';
-        });
-
+        headers.forEach(h => { h.style.display = isWrongOnlyMode ? 'none' : 'block'; });
         const correctBtns = document.querySelectorAll('.card-item.correct');
-        correctBtns.forEach(b => {
-            b.style.opacity = isWrongOnlyMode ? '0.1' : '1';
-        });
-
+        correctBtns.forEach(b => { b.style.opacity = isWrongOnlyMode ? '0.1' : '1'; });
         btn.innerText = isWrongOnlyMode ? '显示全部' : '只看错题';
         btn.style.background = isWrongOnlyMode ? '#ffc107' : '#fff';
     }
@@ -680,19 +721,11 @@
     function renderHistory() {
         const container = document.getElementById('history-list-container');
         const history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
-        
         if (history.length === 0) {
             container.innerHTML = '<p style="color:#999; font-size:12px; text-align:center; padding:10px;">暂无练习记录，加油！</p>';
             return;
         }
-
-        let html = `
-        <table class="history-table">
-            <thead>
-                <tr><th>时间</th><th>耗时</th><th>得分</th></tr>
-            </thead>
-            <tbody>
-        `;
+        let html = `<table class="history-table"><thead><tr><th>时间</th><th>耗时</th><th>得分</th></tr></thead><tbody>`;
         history.slice(0, 5).forEach(item => {
             html += `<tr><td>${item.date.split(' ')[0]}</td><td>${item.duration}</td><td class="history-score">${item.score}</td></tr>`;
         });
