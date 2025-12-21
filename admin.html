@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成绩管理后台 - 2025知识竞赛</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h1 { margin-top: 0; color: #2d5a27; border-bottom: 2px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        button {
+            background-color: #2d5a27; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; font-size: 14px;
+        }
+        button:hover { background-color: #1e3d1a; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: bold; color: #555; }
+        tr:nth-child(even) { background-color: #fcfcfc; }
+        tr:hover { background-color: #f0f0f0; }
+
+        .score-pass { color: #28a745; font-weight: bold; }
+        .score-fail { color: #dc3545; font-weight: bold; }
+        .meta-info { font-size: 12px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        <span>📋 考生成绩监控</span>
+        <button onclick="loadData()">🔄 刷新数据</button>
+    </h1>
+    
+    <div id="status" style="margin-bottom:10px; color:#666; font-size:13px;">点击刷新加载数据...</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px;">ID</th>
+                <th>姓名</th>
+                <th>学号 / 班级</th>
+                <th style="width: 80px;">分数</th>
+                <th>答对/总题</th>
+                <th>耗时</th>
+                <th>提交时间</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadData() {
+        const tbody = document.getElementById('table-body');
+        const status = document.getElementById('status');
+        
+        status.innerText = "⏳ 正在连接数据库...";
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">加载中...</td></tr>';
+
+        try {
+            // 请求后端接口
+            const res = await fetch('/api/records');
+            
+            if (!res.ok) throw new Error("API 请求失败");
+            
+            const data = await res.json();
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">暂无考试数据</td></tr>';
+                status.innerText = "✅ 加载完成，暂无数据";
+                return;
+            }
+
+            tbody.innerHTML = ''; // 清空加载动画
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // 判断分数颜色
+                const scoreClass = row.score >= 60 ? 'score-pass' : 'score-fail';
+                
+                tr.innerHTML = `
+                    <td class="meta-info">${row.id}</td>
+                    <td style="font-weight:bold;">${escapeHtml(row.student_name)}</td>
+                    <td>${escapeHtml(row.student_id)}</td>
+                    <td class="${scoreClass}" style="font-size:16px;">${row.score}</td>
+                    <td>${row.correct_count} / 300</td>
+                    <td>${row.duration}</td>
+                    <td class="meta-info">${row.submit_time}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            status.innerText = `✅ 加载成功，共 ${data.length} 条记录 (最后更新: ${new Date().toLocaleTimeString()})`;
+
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red; padding:20px;">数据加载失败，请检查网络或后端配置。</td></tr>';
+            status.innerText = "❌ 加载出错";
+        }
+    }
+
+    // 简单的防XSS处理
+    function escapeHtml(text) {
+        if (!text) return "-";
+        return text.replace(/&/g, "&amp;")
+                   .replace(/</g, "&lt;")
+                   .replace(/>/g, "&gt;")
+                   .replace(/"/g, "&quot;")
+                   .replace(/'/g, "&#039;");
+    }
+
+    // 页面打开自动加载
+    window.onload = loadData;
+</script>
+
+</body>
+</html>

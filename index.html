@@ -65,6 +65,15 @@
         .btn.danger { background: var(--accent); box-shadow: 0 3px #c9302c; }
         .btn.secondary { background: #6c757d; box-shadow: 0 3px #545b62; }
 
+        /* 输入框样式 */
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-group input { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; 
+            border-radius: 8px; font-size: 16px; transition: border 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); outline: none; }
+
         /* ================= History ================= */
         #history-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px; }
         .history-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
@@ -127,8 +136,7 @@
         .wrong-ans .q-header { color: var(--accent); }
         .wrong-ans .option-item.selected { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
 
-        /* ================= 答题卡系统 (New) ================= */
-        /* 1. 悬浮按钮 */
+        /* ================= 答题卡系统 ================= */
         .fab-card-btn {
             position: fixed; bottom: 30px; right: 20px;
             width: 56px; height: 56px; border-radius: 50%;
@@ -141,7 +149,6 @@
         .fab-card-btn:active { transform: scale(0.95); }
         .fab-card-btn i { font-size: 20px; font-style: normal; font-weight: bold; margin-bottom: 2px; }
 
-        /* 2. 抽屉弹窗 */
         .card-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 2100;
@@ -157,7 +164,6 @@
         }
         .card-modal.active .card-content { transform: translateY(0); }
 
-        /* 3. 弹窗头部 */
         .card-header {
             padding: 15px; border-bottom: 1px solid #eee;
             display: flex; justify-content: space-between; align-items: center;
@@ -165,13 +171,11 @@
         .card-header h3 { margin: 0; font-size: 18px; color: var(--primary); }
         .close-card-btn { background: none; border: none; font-size: 24px; color: #999; padding: 0 10px; }
 
-        /* 4. 弹窗内容区 (可滚动) */
         .card-body {
             flex: 1; overflow-y: auto; padding: 15px;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* 5. 分组折叠标题 */
         .card-section { margin-bottom: 20px; }
         .card-sec-title {
             background: #f8f9fa; padding: 8px 12px; font-weight: bold; font-size: 14px;
@@ -179,7 +183,6 @@
             display: flex; justify-content: space-between;
         }
         
-        /* 6. 网格布局 */
         .card-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 10px;
         }
@@ -213,20 +216,30 @@
     </div>
 
     <div id="welcome-screen" class="card-box">
-        <h2 style="text-align: center; color:var(--primary); margin-top:0;">准备好了吗？</h2>
+        <h2 style="text-align: center; color:var(--primary); margin-top:0;">考生信息录入</h2>
+        
         <div style="background:#eef7ee; padding:15px; border-radius:8px; font-size:14px; color:#333; margin-bottom:20px;">
             <p><strong>🎯 考试规则：</strong></p>
             <ul style="padding-left:20px; margin:5px 0;">
                 <li><strong>题量：</strong>300题 (单选150+多选100+判断50)</li>
-                <li><strong>时长：</strong>60分钟 (倒计时结束自动交卷)</li>
-                <li><strong>记录：</strong>系统会自动保存您的练习历史</li>
+                <li><strong>时长：</strong>60分钟 (交卷后自动上传成绩)</li>
             </ul>
         </div>
-        <button class="btn" onclick="startExam()">开始考试</button>
+
+        <div class="input-group">
+            <label>姓名：</label>
+            <input type="text" id="student-name" placeholder="请输入真实姓名">
+        </div>
+        <div class="input-group">
+            <label>学号 / 班级：</label>
+            <input type="text" id="student-id" placeholder="例如：23级计算机1班">
+        </div>
+
+        <button class="btn" onclick="startExamWithCheck()">开始考试</button>
         
         <div id="history-section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>📜 练习历史</strong>
+                <strong>📜 本机练习历史</strong>
                 <button class="clear-hist-btn" onclick="clearHistory()">清空记录</button>
             </div>
             <div id="history-list-container">
@@ -275,13 +288,19 @@
 
     <div id="result-screen" class="card-box" style="display:none; text-align:center;">
         <h2 style="color:var(--primary)">考试结束</h2>
+        
+        <p style="color:#666; margin:5px 0;">考生：<strong id="result-student-name">--</strong></p>
+
         <div style="font-size:50px; font-weight:900; color:var(--primary); margin:10px 0;">
             <span id="score-display">0</span> <span style="font-size:18px; color:#666;">分</span>
         </div>
         <p>答对: <strong id="correct-count">0</strong> / 300 题</p>
+        
         <div style="background:#fff3cd; padding:10px; border-radius:6px; color:#856404; font-size:14px; margin:20px 0;">
-            错题已标红并显示解析，可点击右下角答题卡快速查看
+            <span id="upload-status">⏳ 正在上传成绩...</span><br>
+            <span style="font-size:12px; color:#999;">(错题已标红，可下滑或使用答题卡查看)</span>
         </div>
+
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
             <button class="btn secondary" onclick="reviewWrong()">查看错题</button>
             <button class="btn" onclick="location.reload()">再练一次</button>
@@ -289,7 +308,7 @@
     </div>
 
     <div class="footer">
-        版权所有 &copy; 2025知识竞赛模拟系统<br>
+        版权所有 &copy; 2025 知识竞赛模拟系统<br>
         Created By <span>Kingkong</span>
     </div>
 </div>
@@ -297,15 +316,17 @@
 <script src="questions_data.js"></script>
 
 <script>
+    // 全局变量
     let currentPaper = [];
     let userAnswers = {}; 
     let timeLeft = 3600; 
     let timerId = null;
     let isExamFinished = false;
     let isWrongOnlyMode = false;
-
-    // 全局题号映射，用于答题卡跳转
     let globalIndexMap = {}; 
+    
+    // 【新增】当前考生信息
+    let currentStudent = { name: "", id: "" };
 
     window.onload = function() { renderHistory(); };
 
@@ -325,6 +346,28 @@
         }
     };
 
+    // 【新增】带校验的开始考试函数
+    function startExamWithCheck() {
+        const nameInp = document.getElementById('student-name');
+        const idInp = document.getElementById('student-id');
+        
+        const name = nameInp.value.trim();
+        const id = idInp.value.trim();
+
+        if (!name || !id) {
+            alert("请先填写【姓名】和【学号/班级】，才能开始考试！");
+            nameInp.focus();
+            return;
+        }
+
+        // 保存信息
+        currentStudent.name = name;
+        currentStudent.id = id;
+
+        // 启动考试
+        startExam();
+    }
+
     function startExam() {
         if (typeof QUESTION_DB === 'undefined') {
             alert("错误：未找到题库文件 questions_data.js");
@@ -339,9 +382,7 @@
 
         currentPaper = [...singles, ...multis, ...tfs];
         
-        // 渲染试卷
         renderPaper(singles, multis, tfs);
-        // 初始化答题卡
         initAnswerCard(singles, multis, tfs);
         updateFabProgress();
 
@@ -358,7 +399,7 @@
         const container = document.getElementById('paper-content');
         container.innerHTML = '';
         let globalIdx = 1;
-        globalIndexMap = {}; // 重置映射
+        globalIndexMap = {}; 
 
         const sections = [
             { id: 'single', name: '一、单选题', data: singles, type: 'radio' },
@@ -379,7 +420,6 @@
                 card.className = 'question-card';
                 card.id = `q-${q.id}`;
                 
-                // 记录题目ID与全局序号的对应关系
                 globalIndexMap[q.id] = globalIdx;
                 
                 let optsHtml = '';
@@ -415,7 +455,6 @@
     }
 
     // ================= 答题卡核心逻辑 =================
-
     function initAnswerCard(singles, multis, tfs) {
         const body = document.getElementById('answer-card-body');
         body.innerHTML = '';
@@ -429,29 +468,21 @@
 
         sections.forEach(sec => {
             if(sec.count === 0) return;
-
-            // 创建分组容器
             const secDiv = document.createElement('div');
             secDiv.className = 'card-section';
-            
-            // 标题
             secDiv.innerHTML = `<div class="card-sec-title">${sec.name} <span>${sec.count}题</span></div>`;
-            
-            // 网格容器
             const grid = document.createElement('div');
             grid.className = 'card-grid';
 
-            // 生成圆圈
             sec.data.forEach(q => {
                 const item = document.createElement('div');
                 item.className = 'card-item';
-                item.id = `card-btn-${q.id}`; // 方便后续查找
+                item.id = `card-btn-${q.id}`;
                 item.innerText = startIdx;
                 item.onclick = function() { scrollToQuestion(q.id); };
                 grid.appendChild(item);
                 startIdx++;
             });
-
             secDiv.appendChild(grid);
             body.appendChild(secDiv);
         });
@@ -470,13 +501,10 @@
     }
 
     function scrollToQuestion(qId) {
-        // 关闭答题卡
         toggleAnswerCard();
-        // 滚动定位
         const el = document.getElementById(`q-${qId}`);
         if(el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // 可选：高亮一下题目
             el.style.border = "2px solid var(--primary)";
             setTimeout(() => { el.style.border = "none"; }, 2000);
         }
@@ -485,7 +513,6 @@
     function updateCardStatus(qId, statusClass) {
         const btn = document.getElementById(`card-btn-${qId}`);
         if(btn) {
-            // 清除旧状态
             btn.classList.remove('answered', 'correct', 'wrong');
             if(statusClass) btn.classList.add(statusClass);
         }
@@ -495,8 +522,6 @@
         const answeredCount = Object.keys(userAnswers).filter(k => userAnswers[k]).length;
         document.getElementById('fab-progress').innerText = `${answeredCount}/300`;
     }
-
-    // ===============================================
 
     function handleAnswer(qId, type) {
         if(isExamFinished) return;
@@ -518,12 +543,9 @@
         const oldVal = userAnswers[qId] || "";
         userAnswers[qId] = finalVal;
 
-        // 【联动】更新答题卡状态
-        if(finalVal) {
-            updateCardStatus(qId, 'answered');
-        } else {
-            updateCardStatus(qId, ''); // 取消选择变回白色
-        }
+        if(finalVal) updateCardStatus(qId, 'answered');
+        else updateCardStatus(qId, '');
+        
         updateFabProgress();
     }
 
@@ -540,45 +562,61 @@
         }
     }
 
-    // 辅助函数：获取标准答案Key（处理中文转字母）
-    // 【核心升级】获取标准答案Key（终极清洗版）
+    // 【核心清洗】获取标准答案Key
     function getStandardAnswer(q) {
-        // 1. 原始清洗：去除首尾空格
         let raw = q.answer.trim();
-        
-        // 2. 尝试清洗掉常见的分割符号（逗号、顿号、空格），只保留文本内容
-        // 比如 "A, B" -> "AB"， "A、B" -> "AB"
         let cleanStr = raw.replace(/[\s,\.、，。]/g, '').toUpperCase();
-
-        // 3. 判断清洗后是否全是字母 (A-Z)
         const isLetterOnly = /^[A-Z]+$/.test(cleanStr);
 
         if (isLetterOnly) {
-            // ==========================================
-            // 情况 A：标准答案是字母 (适用于单选、多选)
-            // ==========================================
-            // 风险规避：如果题库写的是 "BA"，我们要把它排成 "AB" 以便比对
             return cleanStr.split('').sort().join('');
         } else {
-            // ==========================================
-            // 情况 B：标准答案是文字 (适用于判断题 "正确/错误")
-            // ==========================================
-            // 遍历选项，找到文字对应的索引，转为 A/B
             let mappedKey = "";
             q.options.forEach((opt, index) => {
-                // 清洗选项文本：去除 "A."、"1." 等前缀，只留内容
                 const optTxt = opt.replace(/^[A-F\d][\.\、\s]+/, '').trim();
-                
-                // 比对：如果选项内容 == 原始答案 (比如 "正确" == "正确")
-                // 注意：这里用 raw 还是 cleanStr 取决于你的题库中文是否包含标点
-                // 通常用原始中文比对最安全，或者两者都试一下
                 if (optTxt === raw || optTxt === cleanStr) {
-                    mappedKey = String.fromCharCode(65 + index); // 0->A, 1->B
+                    mappedKey = String.fromCharCode(65 + index); 
                 }
             });
-            
-            // 如果没找到匹配的（极罕见情况），返回原始值防止报错
             return mappedKey || raw;
+        }
+    }
+
+    // 【新增】上传成绩到 Cloudflare 后端
+    async function uploadScoreToCloud(score, duration, correctCount) {
+        const statusEl = document.getElementById('upload-status');
+        
+        const examData = {
+            studentName: currentStudent.name || "无名氏",
+            studentId: currentStudent.id || "无学号",
+            score: parseFloat(score),
+            duration: formatDuration(duration),
+            correctCount: correctCount,
+            submitTime: new Date().toLocaleString()
+        };
+
+        try {
+            // 发送请求给 Cloudflare Functions
+            // 如果你在本地开发(localhost)，这步会失败，必须部署后才能测试
+            const response = await fetch('/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(examData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                statusEl.innerHTML = "✅ <strong>成绩上传成功！</strong>";
+                statusEl.style.color = "green";
+            } else {
+                statusEl.innerHTML = "❌ <strong>上传失败：</strong>" + result.error;
+                statusEl.style.color = "red";
+            }
+        } catch (err) {
+            console.error(err);
+            statusEl.innerHTML = "⚠️ <strong>网络故障，无法上传。请截图！</strong>";
+            statusEl.style.color = "red";
         }
     }
 
@@ -591,40 +629,41 @@
 
         let correctCount = 0;
         
-        // 遍历所有题目进行批改
         currentPaper.forEach(q => {
             const uAns = userAnswers[q.id] || "";
             const el = document.getElementById(`q-${q.id}`);
             const inps = document.getElementsByName(q.id);
             for(let inp of inps) inp.disabled = true;
 
-            // 获取标准答案Key
             const correctKey = getStandardAnswer(q);
 
             if(uAns === correctKey) {
                 correctCount++;
                 el.classList.add('correct-ans');
-                // 【联动】答题卡变绿
                 updateCardStatus(q.id, 'correct');
             } else {
                 el.classList.add('wrong-ans');
                 el.classList.add('show-analysis');
-                // 【联动】答题卡变红
                 updateCardStatus(q.id, 'wrong');
             }
         });
 
         const score = ((correctCount / 300) * 100).toFixed(1).replace(/\.0$/, '');
-        saveHistory(score, 3600 - timeLeft);
+        const durationSec = 3600 - timeLeft;
+
+        saveHistory(score, durationSec);
+        
+        // 【新增】触发上传
+        uploadScoreToCloud(score, durationSec, correctCount);
 
         document.getElementById('score-display').innerText = score;
         document.getElementById('correct-count').innerText = correctCount;
+        document.getElementById('result-student-name').innerText = currentStudent.name; // 显示名字
         
         document.getElementById('main-header').style.display = 'flex';
         document.getElementById('exam-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
         
-        // 隐藏悬浮按钮（结果页不需要）
         document.getElementById('fab-btn').style.display = 'none';
         
         window.scrollTo(0,0);
@@ -633,14 +672,10 @@
     function reviewWrong() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
-        
         document.getElementById('exam-top-bar').style.display = 'none';
         document.getElementById('review-top-bar').style.display = 'flex';
         document.getElementById('exam-bottom-action').style.display = 'none';
-        
-        // 恢复悬浮按钮，方便查看错题分布
         document.getElementById('fab-btn').style.display = 'flex';
-
         isWrongOnlyMode = false; 
         toggleWrongOnly(document.getElementById('filter-btn'));
         window.scrollTo(0,0);
@@ -648,34 +683,19 @@
 
     function toggleWrongOnly(btn) {
         isWrongOnlyMode = !isWrongOnlyMode;
-        
         const allCards = document.querySelectorAll('.question-card');
         const headers = document.querySelectorAll('.section-title');
-
         allCards.forEach(card => {
             if (isWrongOnlyMode) {
-                if (!card.classList.contains('wrong-ans')) {
-                    card.style.display = 'none';
-                } else {
-                    card.style.display = 'block';
-                }
+                if (!card.classList.contains('wrong-ans')) card.style.display = 'none';
+                else card.style.display = 'block';
             } else {
                 card.style.display = 'block';
             }
         });
-
-        headers.forEach(h => {
-            h.style.display = isWrongOnlyMode ? 'none' : 'block';
-        });
-
-        // 【联动】答题卡也只显示错题？
-        // 简单处理：只隐藏正确的圆圈可能会破坏布局，暂保持答题卡全显，用颜色区分即可。
-        // 或者我们可以让绿色的变透明：
+        headers.forEach(h => { h.style.display = isWrongOnlyMode ? 'none' : 'block'; });
         const correctBtns = document.querySelectorAll('.card-item.correct');
-        correctBtns.forEach(b => {
-            b.style.opacity = isWrongOnlyMode ? '0.1' : '1';
-        });
-
+        correctBtns.forEach(b => { b.style.opacity = isWrongOnlyMode ? '0.1' : '1'; });
         btn.innerText = isWrongOnlyMode ? '显示全部' : '只看错题';
         btn.style.background = isWrongOnlyMode ? '#ffc107' : '#fff';
     }
@@ -694,19 +714,11 @@
     function renderHistory() {
         const container = document.getElementById('history-list-container');
         const history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
-        
         if (history.length === 0) {
             container.innerHTML = '<p style="color:#999; font-size:12px; text-align:center; padding:10px;">暂无练习记录，加油！</p>';
             return;
         }
-
-        let html = `
-        <table class="history-table">
-            <thead>
-                <tr><th>时间</th><th>耗时</th><th>得分</th></tr>
-            </thead>
-            <tbody>
-        `;
+        let html = `<table class="history-table"><thead><tr><th>时间</th><th>耗时</th><th>得分</th></tr></thead><tbody>`;
         history.slice(0, 5).forEach(item => {
             html += `<tr><td>${item.date.split(' ')[0]}</td><td>${item.duration}</td><td class="history-score">${item.score}</td></tr>`;
         });
