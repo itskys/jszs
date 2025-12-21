@@ -7,80 +7,139 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h1 { margin-top: 0; color: #2d5a27; border-bottom: 2px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        button {
-            background-color: #2d5a27; color: white; border: none; padding: 10px 20px;
-            border-radius: 5px; cursor: pointer; font-size: 14px;
-        }
-        button:hover { background-color: #1e3d1a; }
+        /* 顶部标题栏 */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h1 { margin: 0; color: #2d5a27; font-size: 24px; }
+        
+        /* 按钮组 */
+        .btn-group { display: flex; gap: 10px; }
+        button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+        .btn-refresh { background-color: #2d5a27; color: white; }
+        .btn-refresh:hover { background-color: #1e3d1a; }
+        .btn-export { background-color: #007bff; color: white; }
+        .btn-export:hover { background-color: #0056b3; }
+        .btn-logout { background-color: #6c757d; color: white; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        /* 搜索框 */
+        .search-box { margin-bottom: 15px; }
+        .search-box input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .search-box input:focus { border-color: #2d5a27; outline: none; }
+
+        /* 表格样式 */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f8f9fa; font-weight: bold; color: #555; }
+        th { background-color: #f8f9fa; font-weight: bold; color: #555; position: sticky; top: 0; }
         tr:nth-child(even) { background-color: #fcfcfc; }
         tr:hover { background-color: #f0f0f0; }
 
+        /* 分数颜色 */
         .score-pass { color: #28a745; font-weight: bold; }
         .score-fail { color: #dc3545; font-weight: bold; }
         .meta-info { font-size: 12px; color: #999; }
+        
+        /* 状态条 */
+        #status { margin-bottom: 10px; font-size: 13px; color: #666; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>
-        <span>📋 考生成绩监控</span>
-        <button onclick="loadData()">🔄 刷新数据</button>
-    </h1>
-    
-    <div id="status" style="margin-bottom:10px; color:#666; font-size:13px;">点击刷新加载数据...</div>
+    <div class="header">
+        <h1>📋 考生成绩监控</h1>
+        <div class="btn-group">
+            <button class="btn-refresh" onclick="loadData()">🔄 刷新数据</button>
+            <button class="btn-export" onclick="exportToCSV()">📥 导出 Excel</button>
+            <button class="btn-logout" onclick="logout()">🔒 退出</button>
+        </div>
+    </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 50px;">ID</th>
-                <th>姓名</th>
-                <th>学号 / 班级</th>
-                <th style="width: 80px;">分数</th>
-                <th>答对/总题</th>
-                <th>耗时</th>
-                <th>提交时间</th>
-            </tr>
-        </thead>
-        <tbody id="table-body">
-            </tbody>
-    </table>
+    <div class="search-box">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 输入姓名或学号进行筛选...">
+    </div>
+    
+    <div id="status">
+        <span id="status-text">点击刷新加载数据...</span>
+        <span id="record-count"></span>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th>姓名</th>
+                    <th>学号 / 班级</th>
+                    <th style="width: 80px;">分数</th>
+                    <th>答对题数</th>
+                    <th>耗时</th>
+                    <th style="width: 160px;">提交时间</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
+    // 页面加载自动拉取数据
+    window.onload = loadData;
+
+    // 核心函数：加载数据
     async function loadData() {
         const tbody = document.getElementById('table-body');
-        const status = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
         
-        status.innerText = "⏳ 正在连接数据库...";
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">加载中...</td></tr>';
+        // 1. 安全检查：是否有密码
+        let password = sessionStorage.getItem('admin_pwd');
+        if (!password) {
+            password = prompt("🔒 管理员身份验证\n请输入访问密码：");
+            if (!password) {
+                statusText.innerText = "⛔ 未验证身份，无法查看数据。";
+                return;
+            }
+            sessionStorage.setItem('admin_pwd', password);
+        }
+
+        statusText.innerText = "⏳ 正在连接云数据库...";
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">正在获取最新数据...</td></tr>';
 
         try {
-            // 请求后端接口
-            const res = await fetch('/api/records');
+            // 2. 发起请求 (带密码头)
+            const res = await fetch('/api/records', {
+                method: 'GET',
+                headers: {
+                    'X-Admin-Key': password
+                }
+            });
+            
+            // 3. 处理错误情况
+            if (res.status === 401) {
+                alert("❌ 密码错误！请重新输入。");
+                sessionStorage.removeItem('admin_pwd'); // 清除错误密码
+                location.reload(); // 刷新页面重试
+                return;
+            }
             
             if (!res.ok) throw new Error("API 请求失败");
             
+            // 4. 处理数据
             const data = await res.json();
             
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">暂无考试数据</td></tr>';
-                status.innerText = "✅ 加载完成，暂无数据";
+                statusText.innerText = "✅ 数据加载完成 (空记录)";
+                document.getElementById('record-count').innerText = "共 0 条";
                 return;
             }
 
             tbody.innerHTML = ''; // 清空加载动画
 
+            // 5. 渲染表格
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                // 判断分数颜色
                 const scoreClass = row.score >= 60 ? 'score-pass' : 'score-fail';
                 
                 tr.innerHTML = `
@@ -95,16 +154,94 @@
                 tbody.appendChild(tr);
             });
             
-            status.innerText = `✅ 加载成功，共 ${data.length} 条记录 (最后更新: ${new Date().toLocaleTimeString()})`;
+            statusText.innerText = `✅ 数据已更新 (最后同步: ${new Date().toLocaleTimeString()})`;
+            document.getElementById('record-count').innerText = `共 ${data.length} 条记录`;
+            
+            // 重新应用当前的搜索过滤（如果有）
+            filterTable();
 
         } catch (e) {
             console.error(e);
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red; padding:20px;">数据加载失败，请检查网络或后端配置。</td></tr>';
-            status.innerText = "❌ 加载出错";
+            statusText.innerText = "❌ 加载出错";
         }
     }
 
-    // 简单的防XSS处理
+    // 功能：实时搜索过滤
+    function filterTable() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("dataTable");
+        const tr = table.getElementsByTagName("tr");
+
+        // 从第1行开始循环（跳过表头）
+        for (let i = 1; i < tr.length; i++) {
+            // 获取姓名列(1) 和 学号列(2)
+            const tdName = tr[i].getElementsByTagName("td")[1];
+            const tdId = tr[i].getElementsByTagName("td")[2];
+            
+            if (tdName || tdId) {
+                const txtValueName = tdName.textContent || tdName.innerText;
+                const txtValueId = tdId.textContent || tdId.innerText;
+                
+                if (txtValueName.toUpperCase().indexOf(filter) > -1 || txtValueId.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+    // 功能：导出 CSV (Excel)
+    function exportToCSV() {
+        // 检查是否有数据
+        const rows = document.querySelectorAll("table tr");
+        if(rows.length <= 1) {
+            alert("暂无数据可导出");
+            return;
+        }
+
+        let csvContent = "\uFEFF"; // 添加 BOM 头，强制 Excel 使用 UTF-8 识别中文
+        
+        rows.forEach(row => {
+            // 如果该行被搜索隐藏了，就不导出（只导出可见的）
+            if (row.style.display === 'none') return;
+
+            const cols = row.querySelectorAll("th, td");
+            let rowData = [];
+            
+            cols.forEach(col => {
+                // 处理文本中的逗号和引号，避免 CSV 格式错乱
+                let text = col.innerText.replace(/"/g, '""');
+                // 强制将数字作为文本处理（避免Excel把长学号变成科学计数法），加上 \t
+                // 但为了通用性，我们用引号包裹
+                rowData.push(`"${text}"`); 
+            });
+            
+            csvContent += rowData.join(",") + "\n";
+        });
+
+        // 创建下载
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `知识竞赛成绩单_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 功能：退出登录
+    function logout() {
+        sessionStorage.removeItem('admin_pwd');
+        location.reload();
+    }
+
+    // 安全工具：防止 XSS 注入
     function escapeHtml(text) {
         if (!text) return "-";
         return text.replace(/&/g, "&amp;")
@@ -113,9 +250,6 @@
                    .replace(/"/g, "&quot;")
                    .replace(/'/g, "&#039;");
     }
-
-    // 页面打开自动加载
-    window.onload = loadData;
 </script>
 
 </body>
