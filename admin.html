@@ -11,8 +11,11 @@
         h1 { margin: 0; color: #2d5a27; font-size: 24px; }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap;}
         button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white; transition: 0.2s; }
+        
+        /* 按钮颜色定义 */
         .btn-refresh { background-color: #2d5a27; } .btn-refresh:hover { background-color: #1e3d1a; }
         .btn-analyze { background-color: #6610f2; } .btn-analyze:hover { background-color: #520dc2; }
+        .btn-stats { background-color: #fd7e14; } .btn-stats:hover { background-color: #e36d0d; }
         .btn-export { background-color: #007bff; } .btn-export:hover { background-color: #0056b3; }
         .btn-logout { background-color: #6c757d; }
         
@@ -31,30 +34,55 @@
         .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #fff; }
         .tag-ver { background: #17a2b8; } .tag-switch { background: #dc3545; }
         
-        /* 通用弹窗样式 */
+        /* 弹窗通用样式 */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
         .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; border-radius: 8px; position: relative; display: flex; flex-direction: column; max-height: 90vh; }
-        
-        /* 【新增】大号弹窗样式 (用于题库体检) */
         .large-modal { width: 90%; max-width: 1000px; height: 90%; }
         .modal-body { overflow-y: auto; flex: 1; padding-right: 5px; }
-
         .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; position: absolute; right: 20px; top: 10px;}
         .close:hover { color: black; }
         
-        /* 详情页统计格 */
+        /* 统计详情样式 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; text-align: center; }
         .stat-box { background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
         .stat-title { font-size: 12px; color: #666; margin-bottom: 5px; }
         .stat-num { font-size: 16px; font-weight: bold; color: #2d5a27; }
 
-        /* 【新增】错题列表样式 */
+        /* 错题列表样式 */
         .wrong-item { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; gap: 10px; }
         .wrong-rank { font-size: 18px; font-weight: bold; color: #d9534f; min-width: 30px; }
         .wrong-content { flex: 1; }
         .wrong-q { font-weight: bold; margin-bottom: 5px; color: #333; }
         .wrong-meta { font-size: 12px; color: #666; background: #fff3cd; display: inline-block; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; }
         .wrong-ans-row { font-size: 13px; color: #2d5a27; margin-top: 5px; }
+
+        /* 题库分布统计表格 */
+        .dist-section { margin-bottom: 30px; }
+        .dist-section h3 { border-left: 4px solid #fd7e14; padding-left: 10px; color: #333; }
+        .dist-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+        .dist-table th { background: #fff3cd; color: #856404; text-align: left; padding: 8px; border: 1px solid #ffeeba; }
+        .dist-table td { padding: 8px; border: 1px solid #eee; }
+        .bar-container { background: #f0f0f0; height: 8px; border-radius: 4px; overflow: hidden; width: 100px; display: inline-block; vertical-align: middle; margin-right: 5px; }
+        .bar-fill { height: 100%; background: #fd7e14; }
+
+        /* 特异性检测卡片 */
+        .anomaly-box { 
+            background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #dc3545; 
+            padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .anomaly-title { font-weight: bold; color: #333; display: flex; justify-content: space-between; }
+        .anomaly-count { color: #dc3545; font-size: 18px; font-weight: bold; }
+        .anomaly-desc { font-size: 12px; color: #666; margin-top: 5px; }
+
+        /* 滚动表格容器 */
+        .scroll-table-wrapper {
+            max-height: 300px; /* 超过高度出现滚动条 */
+            overflow-y: auto;
+            border: 1px solid #eee;
+            margin-top: 10px;
+        }
+        /* 固定表头 */
+        .scroll-table-wrapper th { position: sticky; top: 0; z-index: 1; }
     </style>
 </head>
 <body>
@@ -65,6 +93,7 @@
         <div class="btn-group">
             <button class="btn-refresh" onclick="loadData()">🔄 刷新</button>
             <button class="btn-analyze" onclick="analyzeData()">📉 题库体检</button>
+            <button class="btn-stats" onclick="showDistributionStats()">📊 题库分布统计</button>
             <button class="btn-export" onclick="exportToCSV()">📥 导出</button>
             <button class="btn-logout" onclick="logout()">🔒 退出</button>
         </div>
@@ -130,6 +159,15 @@
     </div>
 </div>
 
+<div id="statsModal" class="modal">
+    <div class="modal-content large-modal">
+        <span class="close" onclick="closeModal('statsModal')">&times;</span>
+        <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 题库答案分布统计</h2>
+        <div id="stats-body" class="modal-body">
+            </div>
+    </div>
+</div>
+
 <script src="questions_data.js"></script>
 <script>
     let allRecords = []; 
@@ -141,6 +179,125 @@
         }
         loadData();
     };
+
+    // ============================================
+    //  V3.1 增强版：题库分布统计逻辑
+    // ============================================
+    
+    function cleanAnswer(ans) {
+        if (!ans) return "";
+        let cleaned = ans.toString().replace(/[\s,\.、，。]/g, '').toUpperCase();
+        if (/^[A-Z]+$/.test(cleaned)) {
+            return cleaned.split('').sort().join('');
+        }
+        return cleaned;
+    }
+
+    function showDistributionStats() {
+        if (typeof QUESTION_DB === 'undefined') { alert("题库数据未加载"); return; }
+        
+        let html = "";
+
+        // 1. 特异性题目检测
+        html += `<div class="dist-section"><h3>🕵️ 特异性/异常题目检测</h3>`;
+        html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">`;
+
+        let fakeMultiCount = 0;
+        QUESTION_DB.multi.forEach(q => {
+            if (cleanAnswer(q.answer).length === 1) fakeMultiCount++;
+        });
+        html += `
+            <div class="anomaly-box" style="border-left-color: #ffc107;">
+                <div class="anomaly-title">伪多选题 <span class="anomaly-count" style="color:#ffc107">${fakeMultiCount}</span></div>
+                <div class="anomaly-desc">题型标记为多选，但正确答案只有1个选项。</div>
+            </div>`;
+
+        let hardMultiCount = 0;
+        let totalLongOptionCount = 0;
+        QUESTION_DB.multi.forEach(q => {
+            const ans = cleanAnswer(q.answer);
+            const optLen = q.options ? q.options.length : 0;
+            if (optLen >= 5) {
+                totalLongOptionCount++;
+                if (ans.length < optLen) {
+                    hardMultiCount++;
+                }
+            }
+        });
+        html += `
+            <div class="anomaly-box" style="border-left-color: #17a2b8;">
+                <div class="anomaly-title">长选项陷阱题 <span class="anomaly-count" style="color:#17a2b8">${hardMultiCount}</span></div>
+                <div class="anomaly-desc">5个及以上选项，且答案<b>不是全选</b>。<br>(共 ${totalLongOptionCount} 道此类题，陷阱率 ${Math.round(hardMultiCount/totalLongOptionCount*100||0)}%)</div>
+            </div>`;
+        html += `</div></div>`;
+
+        // 2. 多选题全量组合分析
+        const multiTotal = QUESTION_DB.multi.length;
+        const multiCounts = {};
+        QUESTION_DB.multi.forEach(q => {
+            const k = cleanAnswer(q.answer);
+            multiCounts[k] = (multiCounts[k] || 0) + 1;
+        });
+        const sortedMultiKeys = Object.keys(multiCounts).sort((a,b) => multiCounts[b] - multiCounts[a]);
+
+        html += `<div class="dist-section"><h3>📋 二、多选题答案组合分布 (共 ${multiTotal} 题)</h3>`;
+        html += `<p style="font-size:12px;color:#666">共发现 ${sortedMultiKeys.length} 种答案组合，详情如下：</p>`;
+        html += `<div class="scroll-table-wrapper"><table class="dist-table"><tr><th>答案组合</th><th>数量</th><th>出现几率</th></tr>`;
+        
+        sortedMultiKeys.forEach(k => {
+            const count = multiCounts[k];
+            const pct = ((count/multiTotal)*100).toFixed(2);
+            const barColor = count === multiCounts[sortedMultiKeys[0]] ? '#dc3545' : '#fd7e14';
+            html += `<tr>
+                <td style="font-family:monospace; font-weight:bold;">${k}</td>
+                <td>${count}</td>
+                <td><div class="bar-container"><div class="bar-fill" style="width:${pct}%; background:${barColor}"></div></div> ${pct}%</td>
+            </tr>`;
+        });
+        html += `</table></div></div>`;
+
+        // 3. 单选题
+        const singleTotal = QUESTION_DB.single.length;
+        const singleCounts = {};
+        QUESTION_DB.single.forEach(q => {
+            const k = cleanAnswer(q.answer);
+            singleCounts[k] = (singleCounts[k] || 0) + 1;
+        });
+        html += `<div class="dist-section"><h3>📋 一、单选题分布 (共 ${singleTotal} 题)</h3>`;
+        html += `<table class="dist-table"><tr><th>正确答案</th><th>数量</th><th>占比</th></tr>`;
+        Object.keys(singleCounts).sort().forEach(k => {
+            const count = singleCounts[k];
+            const pct = ((count/singleTotal)*100).toFixed(2);
+            html += `<tr><td><b>${k}</b></td><td>${count}</td><td><div class="bar-container"><div class="bar-fill" style="width:${pct}%"></div></div> ${pct}%</td></tr>`;
+        });
+        html += `</table></div>`;
+
+        // 4. 判断题
+        const tfTotal = QUESTION_DB.tf.length;
+        const tfCounts = {};
+        QUESTION_DB.tf.forEach(q => {
+            let k = cleanAnswer(q.answer);
+            tfCounts[k] = (tfCounts[k] || 0) + 1;
+        });
+        html += `<div class="dist-section"><h3>📋 三、判断题分布 (共 ${tfTotal} 题)</h3>`;
+        html += `<table class="dist-table"><tr><th>正确答案</th><th>数量</th><th>占比</th></tr>`;
+        Object.keys(tfCounts).sort().forEach(k => {
+            const count = tfCounts[k];
+            const pct = ((count/tfTotal)*100).toFixed(2);
+            let label = k;
+            if(k === 'A') label = 'A (正确)';
+            if(k === 'B') label = 'B (错误)';
+            html += `<tr><td><b>${label}</b></td><td>${count}</td><td><div class="bar-container"><div class="bar-fill" style="width:${pct}%"></div></div> ${pct}%</td></tr>`;
+        });
+        html += `</table></div>`;
+
+        document.getElementById('stats-body').innerHTML = html;
+        document.getElementById('statsModal').style.display = "block";
+    }
+
+    // ============================================
+    //  后台核心逻辑 (加载、渲染、体检)
+    // ============================================
 
     async function loadData() {
         const tbody = document.getElementById('table-body');
@@ -260,35 +417,27 @@
         document.getElementById(id).style.display = "none";
     }
 
-    // 【核心升级】题库体检 (全库分析 + Top 20)
     function analyzeData() {
         if(allRecords.length === 0) { alert("暂无数据"); return; }
         
         let wrongCounts = {};
         let coveredIds = new Set();
 
-        // 1. 遍历所有记录，统计错误次数和覆盖率
         allRecords.forEach(r => {
             if(r.stats_json) {
                 try {
                     const s = JSON.parse(r.stats_json);
-                    // 统计错题
                     if(s.wrongIds) s.wrongIds.forEach(id => wrongCounts[id] = (wrongCounts[id]||0) + 1);
-                    // 统计覆盖率 (V2.0+ 数据才有 paperIds)
                     if(s.paperIds) s.paperIds.forEach(id => coveredIds.add(id));
                 } catch(e) {}
             }
         });
 
-        // 2. 排序取出 Top 20 错题
         const topWrongIds = Object.keys(wrongCounts).sort((a,b) => wrongCounts[b] - wrongCounts[a]).slice(0, 20);
-        
-        // 3. 计算覆盖率数据
         const totalQ = Object.keys(QUESTION_MAP).length;
         const deadCount = totalQ - coveredIds.size;
         const coveragePct = Math.round(coveredIds.size/totalQ*100);
 
-        // 4. 生成 HTML 报告
         let html = `
             <div style="background:#e8f5e9; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <strong>🏥 总体覆盖率诊断：</strong><br>
@@ -322,7 +471,6 @@
             });
         }
 
-        // 5. 渲染并显示
         document.getElementById('analysis-body').innerHTML = html;
         document.getElementById('analysisModal').style.display = "block";
     }
@@ -345,9 +493,7 @@
     }
     
     function logout() { sessionStorage.removeItem('admin_pwd'); location.reload(); }
-    function closeModal(id) { document.getElementById(id).style.display = "none"; }
     
-    // 点击弹窗外部关闭
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) {
             event.target.style.display = "none";
