@@ -31,15 +31,30 @@
         .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #fff; }
         .tag-ver { background: #17a2b8; } .tag-switch { background: #dc3545; }
         
-        /* 弹窗样式 */
+        /* 通用弹窗样式 */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px; position: relative; }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; border-radius: 8px; position: relative; display: flex; flex-direction: column; max-height: 90vh; }
+        
+        /* 【新增】大号弹窗样式 (用于题库体检) */
+        .large-modal { width: 90%; max-width: 1000px; height: 90%; }
+        .modal-body { overflow-y: auto; flex: 1; padding-right: 5px; }
+
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; position: absolute; right: 20px; top: 10px;}
         .close:hover { color: black; }
+        
+        /* 详情页统计格 */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; text-align: center; }
         .stat-box { background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
         .stat-title { font-size: 12px; color: #666; margin-bottom: 5px; }
         .stat-num { font-size: 16px; font-weight: bold; color: #2d5a27; }
+
+        /* 【新增】错题列表样式 */
+        .wrong-item { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; gap: 10px; }
+        .wrong-rank { font-size: 18px; font-weight: bold; color: #d9534f; min-width: 30px; }
+        .wrong-content { flex: 1; }
+        .wrong-q { font-weight: bold; margin-bottom: 5px; color: #333; }
+        .wrong-meta { font-size: 12px; color: #666; background: #fff3cd; display: inline-block; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; }
+        .wrong-ans-row { font-size: 13px; color: #2d5a27; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -90,23 +105,34 @@
 
 <div id="detailModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitle">学生详情</h2>
-        <div class="stat-grid">
-            <div class="stat-box"><div class="stat-title">单选 (对/答/总)</div><div class="stat-num" id="modal-s">-</div></div>
-            <div class="stat-box"><div class="stat-title">多选 (对/答/总)</div><div class="stat-num" id="modal-m">-</div></div>
-            <div class="stat-box"><div class="stat-title">判断 (对/答/总)</div><div class="stat-num" id="modal-t">-</div></div>
+        <span class="close" onclick="closeModal('detailModal')">&times;</span>
+        <h2 id="modalTitle" style="margin-top:0;">学生详情</h2>
+        <div class="modal-body">
+            <div class="stat-grid">
+                <div class="stat-box"><div class="stat-title">单选 (对/答/总)</div><div class="stat-num" id="modal-s">-</div></div>
+                <div class="stat-box"><div class="stat-title">多选 (对/答/总)</div><div class="stat-num" id="modal-m">-</div></div>
+                <div class="stat-box"><div class="stat-title">判断 (对/答/总)</div><div class="stat-num" id="modal-t">-</div></div>
+            </div>
+            <div style="margin-top:20px;">
+                <h3>⚠️ 错题诊断 (Top 10)</h3>
+                <div id="modal-wrong-list" style="font-size: 13px; color: #555;"></div>
+            </div>
         </div>
-        <div style="margin-top:20px;">
-            <h3>⚠️ 错题诊断 (部分)</h3>
-            <div id="modal-wrong-list" style="max-height: 200px; overflow-y: auto; font-size: 13px; color: #555;"></div>
-        </div>
+    </div>
+</div>
+
+<div id="analysisModal" class="modal">
+    <div class="modal-content large-modal">
+        <span class="close" onclick="closeModal('analysisModal')">&times;</span>
+        <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📉 题库健康度体检报告</h2>
+        <div id="analysis-body" class="modal-body">
+            </div>
     </div>
 </div>
 
 <script src="questions_data.js"></script>
 <script>
-    let allRecords = []; // 缓存所有数据
+    let allRecords = []; 
     let QUESTION_MAP = {}; 
 
     window.onload = function() {
@@ -154,35 +180,25 @@
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
         
-        // 过滤逻辑
         const verFilter = document.getElementById('versionFilter').value;
         const searchTxt = document.getElementById('searchInput').value.toUpperCase();
 
         data.forEach(row => {
-            const ver = row.exam_version || "完整版"; // 兼容旧数据
+            const ver = row.exam_version || "完整版"; 
             if (verFilter !== 'all' && ver !== verFilter) return;
             
             const txt = (row.student_name + row.student_id).toUpperCase();
             if (searchTxt && txt.indexOf(searchTxt) === -1) return;
 
-            // 解析 stats (带容错处理)
-            let stats = { 
-                breakdown: { 
-                    single:{c:0,a:0,t:0}, 
-                    multi:{c:0,a:0,t:0}, 
-                    tf:{c:0,a:0,t:0} 
-                } 
-            };
+            let stats = { breakdown: { single:{c:0,a:0,t:0}, multi:{c:0,a:0,t:0}, tf:{c:0,a:0,t:0} } };
             if (row.stats_json) {
                 try { stats = JSON.parse(row.stats_json); } catch(e){}
             }
             
-            // 格式化展示: 对/答/总 (正确率)
             const fmt = (obj) => {
-                const ans = obj.a !== undefined ? obj.a : obj.t; // 兼容旧数据
+                const ans = obj.a !== undefined ? obj.a : obj.t; 
                 if(obj && obj.t > 0) {
                     const pct = Math.round(obj.c / obj.t * 100);
-                    // 样式： 120/140/150 <br> (80%)
                     return `<span style="font-size:12px">${obj.c}/${ans}/${obj.t}</span><br><span style="color:#999;font-size:10px">(${pct}%)</span>`;
                 }
                 return '-';
@@ -213,13 +229,11 @@
         renderTable(allRecords);
     }
 
-    // 详情弹窗
     function showDetail(row, stats) {
         document.getElementById('modalTitle').innerText = `${row.student_name} 的详细战报`;
         
-        // 格式化详情: 对/答/总
         const fmtDetail = (obj) => {
-            const ans = obj.a !== undefined ? obj.a : obj.t; // 兼容旧数据
+            const ans = obj.a !== undefined ? obj.a : obj.t;
             return obj && obj.t > 0 ? `${obj.c} / ${ans} / ${obj.t}` : '-';
         };
         
@@ -230,7 +244,7 @@
         const listDiv = document.getElementById('modal-wrong-list');
         listDiv.innerHTML = '';
         if (stats.wrongIds && stats.wrongIds.length > 0) {
-            stats.wrongIds.slice(0, 10).forEach(id => { // 只显示前10个
+            stats.wrongIds.slice(0, 10).forEach(id => { 
                 const q = QUESTION_MAP[id];
                 if(q) listDiv.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:4px;">❌ ${q.question}</div>`;
             });
@@ -242,48 +256,79 @@
         document.getElementById('detailModal').style.display = "block";
     }
 
-    function closeModal() {
-        document.getElementById('detailModal').style.display = "none";
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
     }
 
-    // 题库体检 (全库分析)
+    // 【核心升级】题库体检 (全库分析 + Top 20)
     function analyzeData() {
         if(allRecords.length === 0) { alert("暂无数据"); return; }
         
-        // 1. 高频错题分析
         let wrongCounts = {};
+        let coveredIds = new Set();
+
+        // 1. 遍历所有记录，统计错误次数和覆盖率
         allRecords.forEach(r => {
             if(r.stats_json) {
-                const s = JSON.parse(r.stats_json);
-                if(s.wrongIds) s.wrongIds.forEach(id => wrongCounts[id] = (wrongCounts[id]||0) + 1);
+                try {
+                    const s = JSON.parse(r.stats_json);
+                    // 统计错题
+                    if(s.wrongIds) s.wrongIds.forEach(id => wrongCounts[id] = (wrongCounts[id]||0) + 1);
+                    // 统计覆盖率 (V2.0+ 数据才有 paperIds)
+                    if(s.paperIds) s.paperIds.forEach(id => coveredIds.add(id));
+                } catch(e) {}
             }
-        });
-        const topWrong = Object.keys(wrongCounts).sort((a,b) => wrongCounts[b] - wrongCounts[a]).slice(0, 5);
-        let msg = "🔥 【高频错题 Top 5】\n";
-        topWrong.forEach((id, i) => {
-            const q = QUESTION_MAP[id];
-            if(q) msg += `${i+1}. [${wrongCounts[id]}人错] ${q.question.substr(0, 20)}...\n`;
         });
 
-        // 2. 僵尸题目分析 (从未被考到的题)
-        let coveredIds = new Set();
-        allRecords.forEach(r => {
-             if(r.stats_json) {
-                const s = JSON.parse(r.stats_json);
-                if(s.paperIds) s.paperIds.forEach(id => coveredIds.add(id));
-            }
-        });
+        // 2. 排序取出 Top 20 错题
+        const topWrongIds = Object.keys(wrongCounts).sort((a,b) => wrongCounts[b] - wrongCounts[a]).slice(0, 20);
         
+        // 3. 计算覆盖率数据
         const totalQ = Object.keys(QUESTION_MAP).length;
         const deadCount = totalQ - coveredIds.size;
-        
-        msg += `\n📊 【覆盖率分析】\n题库总数：${totalQ}\n已考题目：${coveredIds.size}\n未考僵尸题：${deadCount} (${Math.round(deadCount/totalQ*100)}%)`;
-        
-        alert(msg);
+        const coveragePct = Math.round(coveredIds.size/totalQ*100);
+
+        // 4. 生成 HTML 报告
+        let html = `
+            <div style="background:#e8f5e9; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <strong>🏥 总体覆盖率诊断：</strong><br>
+                题库总数：${totalQ} 题<br>
+                已考题目：${coveredIds.size} 题 (覆盖率 ${coveragePct}%)<br>
+                僵尸题目：${deadCount} 题 <small style="color:#666">(从未被抽到的题目)</small>
+            </div>
+            <h3>🔥 高频错题 TOP 20</h3>
+        `;
+
+        if(topWrongIds.length === 0) {
+            html += '<p style="text-align:center;color:#999">暂无错题数据</p>';
+        } else {
+            topWrongIds.forEach((id, index) => {
+                const q = QUESTION_MAP[id];
+                const count = wrongCounts[id];
+                if(q) {
+                    html += `
+                    <div class="wrong-item">
+                        <div class="wrong-rank">#${index+1}</div>
+                        <div class="wrong-content">
+                            <div class="wrong-meta">${count} 人答错</div>
+                            <div class="wrong-q">${q.question}</div>
+                            <div style="font-size:12px; color:#666;">
+                                ${q.options.map(o=>o.replace(/^[A-F\d][\.\、\s]+/, '')).join(' | ')}
+                            </div>
+                            <div class="wrong-ans-row">✅ 正确答案：${q.answer}</div>
+                        </div>
+                    </div>`;
+                }
+            });
+        }
+
+        // 5. 渲染并显示
+        document.getElementById('analysis-body').innerHTML = html;
+        document.getElementById('analysisModal').style.display = "block";
     }
 
     function exportToCSV() {
-        const rows = document.querySelectorAll("table tr");
+        const rows = document.querySelectorAll("#dataTable tr");
         if(rows.length <= 1) { alert("无数据可导出"); return; }
         let csv = "\uFEFF"; 
         rows.forEach(row => {
@@ -300,6 +345,14 @@
     }
     
     function logout() { sessionStorage.removeItem('admin_pwd'); location.reload(); }
+    function closeModal(id) { document.getElementById(id).style.display = "none"; }
+    
+    // 点击弹窗外部关闭
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
+        }
+    }
 </script>
 </body>
 </html>
