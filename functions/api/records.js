@@ -6,7 +6,7 @@ export async function onRequestGet(context) {
   
     // 2. 简单的密码比对 (你可以把 '123456' 改成复杂的密码)
     // 注意：真实生产环境通常把密码存在环境变量里，但这里硬编码足够用了
-    const MY_SECRET = "123456"; 
+    const MY_SECRET = "800526"; 
   
     if (secretKey !== MY_SECRET) {
       return new Response(JSON.stringify({ error: "无权访问: 密码错误" }), {
