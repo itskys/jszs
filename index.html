@@ -325,7 +325,14 @@
 <script src="questions_data.js"></script>
 
 <script>
-    // 全局变量
+    // ============================================
+    // V2.0 核心逻辑 (版本标识、切屏检测、全量统计)
+    // ============================================
+    
+    // 1. 版本标识：用于后台区分是完整版还是精简版
+    const EXAM_VERSION = "完整版"; 
+    
+    // 全局变量定义
     let currentPaper = [];
     let userAnswers = {}; 
     let timeLeft = 3600; 
@@ -335,15 +342,19 @@
     let globalIndexMap = {}; 
     let currentStudent = { name: "", id: "" };
     
-    // 【新增】全局题库索引，用于历史记录回溯
-    let QUESTION_MAP = {};
+    // 【新增】全局题库索引，用于历史记录回溯（加速查找）
+    let QUESTION_MAP = {}; 
+    
+    // 【新增】切屏计数器
+    let switchScreenCount = 0; 
 
+    // 初始化加载
     window.onload = function() { 
         initQuestionMap(); // 先建立索引
-        renderHistory(); 
+        renderHistory();   // 渲染历史列表
     };
 
-    // 初始化题库索引：ID -> Question对象 (O(1)查找)
+    // 2. 初始化题库索引：ID -> Question对象 (实现 O(1) 查找)
     function initQuestionMap() {
         if (typeof QUESTION_DB !== 'undefined') {
             ['single', 'multi', 'tf'].forEach(type => {
@@ -354,6 +365,19 @@
         }
     }
 
+    // 3. 切屏检测逻辑
+    document.addEventListener("visibilitychange", () => {
+        // 只有在考试进行中，且当前处于考试界面时才记录
+        if (document.hidden && document.getElementById('exam-screen').style.display === 'block' && !isExamFinished) {
+            switchScreenCount++;
+            document.title = "⚠️ 警告：检测到切屏！";
+            console.log("切屏次数:", switchScreenCount);
+        } else {
+            document.title = "2025年知识竞赛模拟系统";
+        }
+    });
+
+    // 随机打乱算法
     function shuffle(arr) {
         let m = arr.length, t, i;
         while (m) {
@@ -363,6 +387,7 @@
         return arr;
     }
 
+    // 防误触退出
     window.onbeforeunload = function(e) {
         if (!isExamFinished && document.getElementById('exam-screen').style.display === 'block') {
             e.returnValue = '考试进行中，离开将丢失进度';
@@ -370,6 +395,7 @@
         }
     };
 
+    // 带校验的开始考试
     function startExamWithCheck() {
         const nameInp = document.getElementById('student-name');
         const idInp = document.getElementById('student-id');
@@ -389,6 +415,7 @@
         startExam();
     }
 
+    // 开始考试核心逻辑
     function startExam() {
         if (typeof QUESTION_DB === 'undefined') {
             alert("错误：未找到题库文件 questions_data.js");
@@ -396,26 +423,32 @@
         }
 
         userAnswers = {}; 
+        switchScreenCount = 0; // 重置切屏次数
         
+        // 抽题逻辑
         const singles = shuffle([...QUESTION_DB.single]).slice(0, 150);
         const multis = shuffle([...QUESTION_DB.multi]).slice(0, 100);
         const tfs = shuffle([...QUESTION_DB.tf]).slice(0, 50);
 
         currentPaper = [...singles, ...multis, ...tfs];
         
+        // 渲染界面
         renderPaper(singles, multis, tfs);
         initAnswerCard(singles, multis, tfs);
         updateFabProgress();
 
+        // 切换视图
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('main-header').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
         window.scrollTo(0, 0);
 
+        // 启动计时器
         clearInterval(timerId);
         timerId = setInterval(updateTimer, 1000);
     }
 
+    // 渲染试卷DOM
     function renderPaper(singles, multis, tfs) {
         const container = document.getElementById('paper-content');
         container.innerHTML = '';
@@ -475,6 +508,7 @@
         });
     }
 
+    // 初始化答题卡
     function initAnswerCard(singles, multis, tfs) {
         const body = document.getElementById('answer-card-body');
         body.innerHTML = '';
@@ -508,6 +542,7 @@
         });
     }
 
+    // 答题卡开关
     function toggleAnswerCard() {
         const modal = document.getElementById('answer-card-modal');
         const isActive = modal.classList.contains('active');
@@ -520,6 +555,7 @@
         }
     }
 
+    // 滚动定位
     function scrollToQuestion(qId) {
         toggleAnswerCard();
         const el = document.getElementById(`q-${qId}`);
@@ -543,6 +579,7 @@
         document.getElementById('fab-progress').innerText = `${answeredCount}/300`;
     }
 
+    // 处理作答
     function handleAnswer(qId, type) {
         if(isExamFinished) return;
         
@@ -568,6 +605,7 @@
         updateFabProgress();
     }
 
+    // 更新倒计时
     function updateTimer() {
         if(timeLeft > 0) {
             timeLeft--;
@@ -581,6 +619,7 @@
         }
     }
 
+    // 核心清洗：获取标准答案Key
     function getStandardAnswer(q) {
         let raw = q.answer.trim();
         let cleanStr = raw.replace(/[\s,\.、，。]/g, '').toUpperCase();
@@ -600,16 +639,38 @@
         }
     }
 
-    async function uploadScoreToCloud(score, duration, correctCount) {
+    // 4. 数据上传核心逻辑 (包含切屏次数、战报)
+    async function uploadScoreToCloud(score, duration, correctCount, typeStats, uAnswers, paper) {
         const statusEl = document.getElementById('upload-status');
         
+        // 算出错题ID列表
+        const wrongIds = paper.filter(q => {
+            const correctKey = getStandardAnswer(q);
+            const userAns = uAnswers[q.id] || "";
+            return userAns !== correctKey;
+        }).map(q => q.id);
+        
+        // 构造详细战报 (JSON)
+        const detailedStats = {
+            breakdown: {
+                single: { c: typeStats.single.correct, t: typeStats.single.total },
+                multi:  { c: typeStats.multi.correct,  t: typeStats.multi.total },
+                tf:     { c: typeStats.tf.correct,     t: typeStats.tf.total }
+            },
+            wrongIds: wrongIds,
+            paperIds: paper.map(q => q.id) // 全量题目ID
+        };
+
         const examData = {
             studentName: currentStudent.name || "无名氏",
             studentId: currentStudent.id || "无学号",
             score: parseFloat(score),
             duration: formatDuration(duration),
             correctCount: correctCount,
-            submitTime: new Date().toLocaleString()
+            submitTime: new Date().toLocaleString(),
+            examVersion: EXAM_VERSION,      // 版本
+            switchCount: switchScreenCount, // 切屏次数
+            stats: detailedStats            // 详细数据包
         };
 
         try {
@@ -635,6 +696,7 @@
         }
     }
 
+    // 交卷逻辑
     function submitExam(manual) {
         if(manual && !confirm("确定要交卷吗？")) return;
         
@@ -643,7 +705,7 @@
         window.onbeforeunload = null;
 
         let correctCount = 0;
-        // 分类统计
+        // 分类统计初始化
         let stats = {
             single: { total: 0, correct: 0 },
             multi: { total: 0, correct: 0 },
@@ -652,7 +714,7 @@
 
         // 遍历批改
         currentPaper.forEach(q => {
-            // 统计题目总数
+            // 统计总数
             if(q.type === 'single') stats.single.total++;
             else if(q.type === 'multi') stats.multi.total++;
             else if(q.type === 'tf') stats.tf.total++;
@@ -683,11 +745,13 @@
         const score = ((correctCount / 300) * 100).toFixed(1).replace(/\.0$/, '');
         const durationSec = 3600 - timeLeft;
 
-        // 【新增】保存增强版历史记录 (含复盘快照)
+        // 保存历史 (V2.0: 包含快照)
         saveHistory(score, durationSec, correctCount, stats);
         
-        uploadScoreToCloud(score, durationSec, correctCount);
+        // 上传云端 (V2.0: 包含战报)
+        uploadScoreToCloud(score, durationSec, correctCount, stats, userAnswers, currentPaper);
 
+        // UI 切换
         document.getElementById('score-display').innerText = score;
         document.getElementById('correct-count').innerText = correctCount;
         document.getElementById('result-student-name').innerText = currentStudent.name;
@@ -695,11 +759,12 @@
         document.getElementById('main-header').style.display = 'flex';
         document.getElementById('exam-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
-        
         document.getElementById('fab-btn').style.display = 'none';
+        
         window.scrollTo(0,0);
     }
 
+    // 错题复习模式
     function reviewWrong() {
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('exam-screen').style.display = 'block';
@@ -712,6 +777,7 @@
         window.scrollTo(0,0);
     }
 
+    // 筛选只看错题
     function toggleWrongOnly(btn) {
         isWrongOnlyMode = !isWrongOnlyMode;
         const allCards = document.querySelectorAll('.question-card');
@@ -732,7 +798,7 @@
     }
 
     // ===============================================
-    // 历史记录与复盘核心逻辑
+    // 5. 历史记录与复盘核心逻辑 (V2.0 新增)
     // ===============================================
 
     function saveHistory(score, durationSec, correctCount, typeStats) {
@@ -877,9 +943,6 @@
                 el.classList.add('show-analysis');
                 updateCardStatus(q.id, 'wrong');
             }
-            
-            // 如果没答，也要更新答题卡为白色或特定颜色，这里默认保持原样(white)即可，
-            // 但如果判错了，updateCardStatus 已经处理成 red 了
         });
 
         updateFabProgress(); // 更新悬浮球
