@@ -38,7 +38,8 @@
         .close:hover { color: black; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; text-align: center; }
         .stat-box { background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
-        .stat-num { font-size: 18px; font-weight: bold; color: #2d5a27; }
+        .stat-title { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .stat-num { font-size: 16px; font-weight: bold; color: #2d5a27; }
     </style>
 </head>
 <body>
@@ -74,9 +75,9 @@
                     <th>姓名/学号</th>
                     <th>版本</th>
                     <th>分数</th>
-                    <th>单选(对/总)</th>
-                    <th>多选</th>
-                    <th>判断</th>
+                    <th>单选<br><span style="font-size:10px;font-weight:normal">(对/答/总)</span></th>
+                    <th>多选<br><span style="font-size:10px;font-weight:normal">(对/答/总)</span></th>
+                    <th>判断<br><span style="font-size:10px;font-weight:normal">(对/答/总)</span></th>
                     <th>耗时</th>
                     <th>切屏</th>
                     <th>提交时间</th>
@@ -92,9 +93,9 @@
         <span class="close" onclick="closeModal()">&times;</span>
         <h2 id="modalTitle">学生详情</h2>
         <div class="stat-grid">
-            <div class="stat-box"><div>单选正确率</div><div class="stat-num" id="modal-s">-</div></div>
-            <div class="stat-box"><div>多选正确率</div><div class="stat-num" id="modal-m">-</div></div>
-            <div class="stat-box"><div>判断正确率</div><div class="stat-num" id="modal-t">-</div></div>
+            <div class="stat-box"><div class="stat-title">单选 (对/答/总)</div><div class="stat-num" id="modal-s">-</div></div>
+            <div class="stat-box"><div class="stat-title">多选 (对/答/总)</div><div class="stat-num" id="modal-m">-</div></div>
+            <div class="stat-box"><div class="stat-title">判断 (对/答/总)</div><div class="stat-num" id="modal-t">-</div></div>
         </div>
         <div style="margin-top:20px;">
             <h3>⚠️ 错题诊断 (部分)</h3>
@@ -164,14 +165,29 @@
             const txt = (row.student_name + row.student_id).toUpperCase();
             if (searchTxt && txt.indexOf(searchTxt) === -1) return;
 
-            // 解析 stats
-            let stats = { breakdown: { single:{c:0,t:0}, multi:{c:0,t:0}, tf:{c:0,t:0} } };
+            // 解析 stats (带容错处理)
+            let stats = { 
+                breakdown: { 
+                    single:{c:0,a:0,t:0}, 
+                    multi:{c:0,a:0,t:0}, 
+                    tf:{c:0,a:0,t:0} 
+                } 
+            };
             if (row.stats_json) {
                 try { stats = JSON.parse(row.stats_json); } catch(e){}
             }
             
-            // 格式化展示
-            const fmt = (obj) => obj.t > 0 ? `${obj.c}/${obj.t} (${Math.round(obj.c/obj.t*100)}%)` : '-';
+            // 格式化展示: 对/答/总 (正确率)
+            const fmt = (obj) => {
+                const ans = obj.a !== undefined ? obj.a : obj.t; // 兼容旧数据
+                if(obj && obj.t > 0) {
+                    const pct = Math.round(obj.c / obj.t * 100);
+                    // 样式： 120/140/150 <br> (80%)
+                    return `<span style="font-size:12px">${obj.c}/${ans}/${obj.t}</span><br><span style="color:#999;font-size:10px">(${pct}%)</span>`;
+                }
+                return '-';
+            };
+
             const tr = document.createElement('tr');
             tr.onclick = () => showDetail(row, stats);
             
@@ -182,9 +198,9 @@
                 <td><b>${row.student_name}</b><br><span style="color:#888;font-size:12px">${row.student_id}</span></td>
                 <td><span class="tag tag-ver">${ver}</span></td>
                 <td class="${scoreClass}" style="font-size:16px">${row.score}</td>
-                <td>${fmt(stats.breakdown.single || {c:0,t:0})}</td>
-                <td>${fmt(stats.breakdown.multi || {c:0,t:0})}</td>
-                <td>${fmt(stats.breakdown.tf || {c:0,t:0})}</td>
+                <td style="text-align:center">${fmt(stats.breakdown.single || {c:0,a:0,t:0})}</td>
+                <td style="text-align:center">${fmt(stats.breakdown.multi || {c:0,a:0,t:0})}</td>
+                <td style="text-align:center">${fmt(stats.breakdown.tf || {c:0,a:0,t:0})}</td>
                 <td>${row.duration}</td>
                 <td>${switchTag}</td>
                 <td style="color:#888;font-size:12px">${row.submit_time}</td>
@@ -200,11 +216,16 @@
     // 详情弹窗
     function showDetail(row, stats) {
         document.getElementById('modalTitle').innerText = `${row.student_name} 的详细战报`;
-        const fmtPct = (obj) => obj && obj.t > 0 ? Math.round(obj.c/obj.t*100) + '%' : '-';
         
-        document.getElementById('modal-s').innerText = fmtPct(stats.breakdown.single);
-        document.getElementById('modal-m').innerText = fmtPct(stats.breakdown.multi);
-        document.getElementById('modal-t').innerText = fmtPct(stats.breakdown.tf);
+        // 格式化详情: 对/答/总
+        const fmtDetail = (obj) => {
+            const ans = obj.a !== undefined ? obj.a : obj.t; // 兼容旧数据
+            return obj && obj.t > 0 ? `${obj.c} / ${ans} / ${obj.t}` : '-';
+        };
+        
+        document.getElementById('modal-s').innerText = fmtDetail(stats.breakdown.single);
+        document.getElementById('modal-m').innerText = fmtDetail(stats.breakdown.multi);
+        document.getElementById('modal-t').innerText = fmtDetail(stats.breakdown.tf);
 
         const listDiv = document.getElementById('modal-wrong-list');
         listDiv.innerHTML = '';
@@ -244,7 +265,7 @@
             if(q) msg += `${i+1}. [${wrongCounts[id]}人错] ${q.question.substr(0, 20)}...\n`;
         });
 
-        // 2. 僵尸题目分析 (从未被考到的题) - 需遍历 paperIds
+        // 2. 僵尸题目分析 (从未被考到的题)
         let coveredIds = new Set();
         allRecords.forEach(r => {
              if(r.stats_json) {
@@ -262,8 +283,20 @@
     }
 
     function exportToCSV() {
-        // ... (保留你之前的导出代码，建议增加 stats.breakdown 的导出列)
-        alert("功能保留，代码较长此处省略，逻辑与之前一致");
+        const rows = document.querySelectorAll("table tr");
+        if(rows.length <= 1) { alert("无数据可导出"); return; }
+        let csv = "\uFEFF"; 
+        rows.forEach(row => {
+            if (row.style.display === 'none') return;
+            const cols = row.querySelectorAll("th, td");
+            let rowData = [];
+            cols.forEach(col => rowData.push(`"${col.innerText.replace(/"/g, '""').replace(/\n/g, ' ')}"`));
+            csv += rowData.join(",") + "\n";
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+        link.download = `成绩单_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
     }
     
     function logout() { sessionStorage.removeItem('admin_pwd'); location.reload(); }

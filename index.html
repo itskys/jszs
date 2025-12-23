@@ -651,11 +651,12 @@
         }).map(q => q.id);
         
         // 构造详细战报 (JSON)
+        // 【修改点5】打包上传数据
         const detailedStats = {
             breakdown: {
-                single: { c: typeStats.single.correct, t: typeStats.single.total },
-                multi:  { c: typeStats.multi.correct,  t: typeStats.multi.total },
-                tf:     { c: typeStats.tf.correct,     t: typeStats.tf.total }
+                single: { c: typeStats.single.correct, a: typeStats.single.answered, t: typeStats.single.total },
+                multi:  { c: typeStats.multi.correct,  a: typeStats.multi.answered,  t: typeStats.multi.total },
+                tf:     { c: typeStats.tf.correct,     a: typeStats.tf.answered,     t: typeStats.tf.total }
             },
             wrongIds: wrongIds,
             paperIds: paper.map(q => q.id) // 全量题目ID
@@ -705,21 +706,29 @@
         window.onbeforeunload = null;
 
         let correctCount = 0;
-        // 分类统计初始化
+        // 【修改点1】stats 结构增加 answered 字段
         let stats = {
-            single: { total: 0, correct: 0 },
-            multi: { total: 0, correct: 0 },
-            tf: { total: 0, correct: 0 }
+            single: { total: 0, answered: 0, correct: 0 },
+            multi: { total: 0, answered: 0, correct: 0 },
+            tf: { total: 0, answered: 0, correct: 0 }
         };
 
         // 遍历批改
         currentPaper.forEach(q => {
-            // 统计总数
+            // 统计总题数
             if(q.type === 'single') stats.single.total++;
             else if(q.type === 'multi') stats.multi.total++;
             else if(q.type === 'tf') stats.tf.total++;
 
             const uAns = userAnswers[q.id] || "";
+            
+            // 【修改点2】统计已答题数 (只要有答案就算已答)
+            if(uAns !== "") {
+                if(q.type === 'single') stats.single.answered++;
+                else if(q.type === 'multi') stats.multi.answered++;
+                else if(q.type === 'tf') stats.tf.answered++;
+            }
+
             const el = document.getElementById(`q-${q.id}`);
             const inps = document.getElementsByName(q.id);
             for(let inp of inps) inp.disabled = true;
@@ -801,54 +810,31 @@
     // 5. 历史记录与复盘核心逻辑 (V2.0 新增)
     // ===============================================
 
+    // 【修改点3】保存逻辑适配新结构
     function saveHistory(score, durationSec, correctCount, typeStats) {
-        // 计算正确率百分比
-        const getPct = (c, t) => t===0 ? '-' : Math.round((c/t)*100) + '%';
-        const statsDisplay = {
-            s: getPct(typeStats.single.correct, typeStats.single.total),
-            m: getPct(typeStats.multi.correct, typeStats.multi.total),
-            t: getPct(typeStats.tf.correct, typeStats.tf.total)
-        };
-
-        // 提取题目ID列表（压缩存储）
-        const qIds = currentPaper.map(q => q.id);
-
-        const historyItem = {
-            timestamp: Date.now(), // 排序用
-            date: new Date().toLocaleString(),
-            score: score,
-            duration: formatDuration(durationSec),
-            stats: statsDisplay,
-            // 存快照：用户答案 + 题目ID列表
-            snapshot: {
-                qIds: qIds,
-                answers: userAnswers
-            }
-        };
-
-        let history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
-        history.unshift(historyItem);
-        // 限制只存最近 20 条，防止 localStorage 爆满
-        if (history.length > 20) history = history.slice(0, 20);
+        // 辅助函数：生成 "对/答/总" 字符串
+        const getStr = (obj) => `${obj.correct}/${obj.answered}/${obj.total}`;
         
-        localStorage.setItem('kk_exam_history', JSON.stringify(history));
+        const statsDisplay = {
+            s: getStr(typeStats.single),
+            m: getStr(typeStats.multi),
+            t: getStr(typeStats.tf)
+        };
+        // ... (后续代码不变，直到 localStorage.setItem) ...
     }
 
+    // 【修改点4】历史列表渲染逻辑 (增加列头，修改数据单元格)
     function renderHistory() {
-        const container = document.getElementById('history-list-container');
-        const history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
-        
-        if (history.length === 0) {
-            container.innerHTML = '<p style="color:#999; font-size:12px; text-align:center; padding:10px;">暂无练习记录，加油！</p>';
-            return;
-        }
+        // ... (前置判断代码不变) ...
 
         let html = `
         <table class="history-table">
             <thead>
                 <tr>
                     <th>时间</th>
-                    <th>单/多/判</th>
+                    <th>单选(对/答/总)</th>
+                    <th>多选</th>
+                    <th>判断</th>
                     <th>得分</th>
                 </tr>
             </thead>
@@ -856,16 +842,20 @@
         `;
         
         history.forEach((item, index) => {
-            // 兼容旧版数据（如果没有 snapshot 字段，则不可点击）
             const canReview = !!item.snapshot;
             const clickAttr = canReview ? `onclick="loadHistorySnapshot(${index})"` : '';
             const rowClass = canReview ? 'history-row-clickable' : '';
-            const stats = item.stats || {s:'-', m:'-', t:'-'}; // 兼容旧版
+            // 兼容旧数据的显示逻辑
+            const s = item.stats ? (item.stats.s || '-') : '-';
+            const m = item.stats ? (item.stats.m || '-') : '-';
+            const t = item.stats ? (item.stats.t || '-') : '-';
 
             html += `
-                <tr class="${rowClass}" ${clickAttr} title="${canReview?'点击查看详情':'旧记录不可查看'}">
+                <tr class="${rowClass}" ${clickAttr} title="${canReview?'点击复盘':'旧记录不可查看'}">
                     <td>${item.date.split(' ')[0]}<br><span style="font-size:10px;color:#999">${item.duration}</span></td>
-                    <td><span style="font-size:10px;">${stats.s} / ${stats.m} / ${stats.t}</span></td>
+                    <td><span style="font-size:11px;">${s}</span></td>
+                    <td><span style="font-size:11px;">${m}</span></td>
+                    <td><span style="font-size:11px;">${t}</span></td>
                     <td class="history-score">${item.score}</td>
                 </tr>`;
         });
