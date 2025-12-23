@@ -267,7 +267,8 @@
         html += `<table class="dist-table"><tr><th>正确答案</th><th>数量</th><th>占比</th></tr>`;
         Object.keys(singleCounts).sort().forEach(k => {
             const count = singleCounts[k];
-            const pct = ((count/singleTotal)*100).toFixed(2);
+            // 优化后 (防止除以0)
+            const pct = singleTotal > 0 ? ((count/singleTotal)*100).toFixed(2) : "0.00";
             html += `<tr><td><b>${k}</b></td><td>${count}</td><td><div class="bar-container"><div class="bar-fill" style="width:${pct}%"></div></div> ${pct}%</td></tr>`;
         });
         html += `</table></div>`;
