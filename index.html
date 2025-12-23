@@ -825,16 +825,26 @@
 
     // 【修改点4】历史列表渲染逻辑 (增加列头，修改数据单元格)
     function renderHistory() {
-        // ... (前置判断代码不变) ...
+        const container = document.getElementById('history-list-container');
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('kk_exam_history') || '[]');
+        } catch (e) {
+            console.error("历史记录解析失败，重置为空", e);
+            localStorage.removeItem('kk_exam_history'); // 数据损坏则清空
+        }
+        
+        if (history.length === 0) {
+            container.innerHTML = '<p style="color:#999; font-size:12px; text-align:center; padding:10px;">暂无练习记录，加油！</p>';
+            return;
+        }
 
         let html = `
         <table class="history-table">
             <thead>
                 <tr>
                     <th>时间</th>
-                    <th>单选(对/答/总)</th>
-                    <th>多选</th>
-                    <th>判断</th>
+                    <th>单/多/判<br><span style="font-size:10px;font-weight:normal">(对/答/总)</span></th>
                     <th>得分</th>
                 </tr>
             </thead>
@@ -842,20 +852,22 @@
         `;
         
         history.forEach((item, index) => {
+            // 1. 判断是否可复盘 (V2.0+ 数据才有 snapshot)
             const canReview = !!item.snapshot;
             const clickAttr = canReview ? `onclick="loadHistorySnapshot(${index})"` : '';
             const rowClass = canReview ? 'history-row-clickable' : '';
-            // 兼容旧数据的显示逻辑
-            const s = item.stats ? (item.stats.s || '-') : '-';
-            const m = item.stats ? (item.stats.m || '-') : '-';
-            const t = item.stats ? (item.stats.t || '-') : '-';
+            
+            // 2. 核心修复：安全解析 stats (兼容 V1.0 旧数据)
+            // 如果 item.stats 不存在，或者格式不对，给默认值
+            const safeStats = item.stats || {};
+            const s = safeStats.s || '-'; // 如果没有单选数据，显示 -
+            const m = safeStats.m || '-';
+            const t = safeStats.t || '-';
 
             html += `
-                <tr class="${rowClass}" ${clickAttr} title="${canReview?'点击复盘':'旧记录不可查看'}">
+                <tr class="${rowClass}" ${clickAttr} title="${canReview?'点击复盘':'旧记录不可复盘'}">
                     <td>${item.date.split(' ')[0]}<br><span style="font-size:10px;color:#999">${item.duration}</span></td>
-                    <td><span style="font-size:11px;">${s}</span></td>
-                    <td><span style="font-size:11px;">${m}</span></td>
-                    <td><span style="font-size:11px;">${t}</span></td>
+                    <td><span style="font-size:11px;">${s}</span><br><span style="font-size:11px;">${m}</span><br><span style="font-size:11px;">${t}</span></td>
                     <td class="history-score">${item.score}</td>
                 </tr>`;
         });
