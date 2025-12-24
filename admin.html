@@ -430,6 +430,7 @@
                         <th>耗时</th>
                         <th>切屏</th>
                         <th>提交时间</th>
+                        <th style="width:80px; text-align:center;">操作</th>
                     </tr>
                 </thead>
                 <tbody id="table-body"></tbody>
@@ -703,6 +704,9 @@
                 <td>${row.duration}</td>
                 <td>${switchTag}</td>
                 <td style="color:#888;font-size:12px">${row.submit_time}</td>
+                <td style="text-align:center;">
+                    <button onclick="event.stopPropagation(); deleteRecord(${row.id})" style="padding:4px 8px; background:#dc3545; font-size:12px; border-radius:3px;">删除</button>
+                </td>
             `;
                 tbody.appendChild(tr);
             });
@@ -788,11 +792,15 @@
             let wrongCounts = {};
             let coveredIds = new Set();
 
-            allRecords.forEach(r => {
-                if (r.stats_json) {
+            allRecords.forEach(record => {
+                if (record.stats_json) {
                     try {
-                        const s = JSON.parse(r.stats_json);
-                        if (s.wrongIds) s.wrongIds.forEach(id => wrongCounts[id] = (wrongCounts[id] || 0) + 1);
+                        const s = JSON.parse(record.stats_json);
+                        if (s.wrongIds) {
+                            s.wrongIds.forEach(id => {
+                                wrongCounts[id] = (wrongCounts[id] || 0) + 1;
+                            });
+                        }
                         if (s.paperIds) s.paperIds.forEach(id => coveredIds.add(id));
                     } catch (e) { }
                 }
@@ -838,6 +846,34 @@
 
             document.getElementById('analysis-body').innerHTML = html;
             document.getElementById('analysisModal').style.display = "block";
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm(`确定要删除 ID:${id} 的这条记录吗？\n此操作不可恢复！`)) return;
+
+            const password = sessionStorage.getItem('admin_pwd');
+            if (!password) { alert("请刷新页面重新登录"); return; }
+
+            try {
+                const res = await fetch(`/api/records?id=${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Admin-Key': password }
+                });
+
+                if (res.status === 200) {
+                    const result = await res.json();
+                    if (result.success) {
+                        loadData();
+                    } else {
+                        alert("删除失败: " + result.error);
+                    }
+                } else {
+                    alert("删除请求失败: " + res.status);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("网络错误");
+            }
         }
 
         function exportToCSV() {
