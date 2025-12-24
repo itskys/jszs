@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2025年知识竞赛模拟系统(简易版)</title>
+    <title>2025年知识竞赛模拟系统</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232d5a27%22/><text x=%2250%22 y=%2250%22 fill=%22white%22 font-size=%2255%22 font-weight=%22900%22 font-family=%22sans-serif%22 text-anchor=%22middle%22 dy=%22.35em%22>KK</text></svg>">
     <style>
@@ -480,7 +480,7 @@
             margin-top: auto;
         }
 
-        /* 简易版独有的黄色说明框 */
+        /* 简版独有的黄色说明框 */
         .disclaimer-box {
             background: #fff3cd;
             color: #856404;
@@ -500,7 +500,7 @@
         <div class="header" id="main-header">
             <div class="logo-box">KK</div>
             <h1>2025年知识竞赛模拟系统</h1>
-            <div class="sub-title">闭卷机试(简易版) | 限时60分钟 | 总分100分</div>
+            <div class="sub-title">闭卷机试 | 限时60分钟 | 总分100分</div>
         </div>
 
         <div id="welcome-screen" class="card-box">
@@ -615,25 +615,25 @@
     <script src="js/exam-core.js"></script>
     <script>
         // ============================================
-        // V2.0 核心逻辑 (简易版)
+        // V2.0 核心逻辑 (精简版)
         // ============================================
 
         // 【差异点1】版本标识：精简版
         const EXAM_VERSION = "精简版";
 
-        // * 全局变量定义已移至 exam-core.js *
-
-        // 重新定义 window.onload
+        // 重新定义 window.onload 以启动通用逻辑
         window.onload = function () {
+            if (typeof initQuestionMap !== 'function') {
+                alert("核心库加载失败，请检查 js/exam-core.js 是否存在");
+                return;
+            }
             initQuestionMap();
             renderHistory();
-            checkUnsentSubmission(); // 检查未提交记录
-            restoreExamSession();    // 检查未完成考试
+            checkUnsentSubmission(); 
+            restoreExamSession();    
         };
 
-        // * initQuestionMap 移至 exam-core.js *
-
-        // 切屏检测逻辑
+        // 切屏检测逻辑 (核心库中也有 switchScreenCount 变量，但事件监听在此处定义较好)
         document.addEventListener("visibilitychange", () => {
             if (document.hidden && document.getElementById('exam-screen').style.display === 'block' && !isExamFinished) {
                 switchScreenCount++;
@@ -643,7 +643,8 @@
             }
         });
 
-        // 随机打乱算法
+        // 随机打乱算法 (核心库未提供则保留，若核心库有则可删除)
+        // index.html 中也有此函数，建议保留以免依赖缺失
         function shuffle(arr) {
             let m = arr.length, t, i;
             while (m) {
@@ -653,6 +654,7 @@
             return arr;
         }
 
+        // 防误触退出
         window.onbeforeunload = function (e) {
             if (!isExamFinished && document.getElementById('exam-screen').style.display === 'block') {
                 e.returnValue = '考试进行中，离开将丢失进度';
@@ -672,6 +674,7 @@
                 return;
             }
 
+            // 使用核心库的全局变量
             currentStudent.name = name;
             currentStudent.id = id;
             startExam();
@@ -684,10 +687,11 @@
                 return;
             }
 
+            // 重置状态 (变量来自核心库)
             userAnswers = {};
             switchScreenCount = 0;
 
-            // --- 简易版核心逻辑：半库锁定 ---
+            // --- 精简版核心逻辑：半库锁定 ---
             const POOL_RATIO = 0.5;
             const targetSingle = 150;
             const targetMulti = 100;
@@ -712,9 +716,10 @@
 
             // 记录开始时间
             window.examStartTime = Date.now();
-            // 启动实时心跳监测
+            // 启动实时心跳 (核心库函数)
             if (typeof startHeartbeat === 'function') startHeartbeat(EXAM_VERSION);
 
+            // 调用核心库的通用渲染和初始化函数
             renderPaper(singles, multis, tfs);
             initAnswerCard(singles, multis, tfs);
             updateFabProgress();
@@ -728,20 +733,11 @@
             clearInterval(timerId);
             timerId = setInterval(updateTimer, 1000);
 
-            // 立即保存状态
+            // 立即保存状态 (核心库函数)
             saveExamState();
         }
 
-        // * renderPaper 移至 exam-core.js *
-        // * initAnswerCard 移至 exam-core.js *
-        // * toggleAnswerCard 移至 exam-core.js *
-        // * handleAnswer 移至 exam-core.js *
-        // * updateTimer 移至 exam-core.js *
-        // * getStandardAnswer 移至 exam-core.js (was duplicated inside submitExam? no, it was separate in index.html, check exam.html) *
-        // * updateCardStatus 移至 exam-core.js *
-        // * updateFabProgress 移至 exam-core.js *
-
-        // 交卷逻辑
+        // 交卷逻辑 (保留自定义算分规则 0.5/0.2/0.1)
         function submitExam(manual) {
             if (manual && !confirm("确定要提交试卷吗？")) return;
 
@@ -749,7 +745,7 @@
             isExamFinished = true;
             localStorage.removeItem('kk_exam_session_v2');
 
-            // 计算成绩
+            // 自定义算分逻辑
             let score = 0;
             let correctCount = 0;
             const typeStats = {
@@ -760,14 +756,14 @@
 
             currentPaper.forEach(q => {
                 const userAns = userAnswers[q.id] || "";
-                const correctAns = getStandardAnswer(q);
+                const correctAns = getStandardAnswer(q); // 核心库函数
                 let isCorrect = (userAns === correctAns);
 
                 // 统计
                 typeStats[q.type].total++;
                 if (userAns) typeStats[q.type].answered++;
 
-                // 算分规则
+                // 精简版特殊算分规则
                 if (q.type === 'single') {
                     if (isCorrect) { score += 0.5; correctCount++; typeStats.single.correct++; }
                 } else if (q.type === 'multi') {
@@ -793,24 +789,10 @@
 
             window.scrollTo(0, 0);
 
-            // 记录历史
+            // 调用核心库的保存和上传功能
             saveHistory(score, duration, correctCount, typeStats);
-
-            // 上传成绩 (注意包含切屏次数和 EXAM_VERSION)
             uploadScoreToCloud(score, duration, correctCount, typeStats, userAnswers, currentPaper, switchScreenCount, EXAM_VERSION);
         }
-
-        // * reviewWrong 移至 exam-core.js *
-        // * toggleWrongOnly 移至 exam-core.js *
-        // * saveHistory 移至 exam-core.js *
-        // * renderHistory 移至 exam-core.js *
-        // * clearHistory 移至 exam-core.js *
-        // * loadHistorySnapshot 移至 exam-core.js *
-        // * saveExamState 移至 exam-core.js *
-        // * restoreExamSession 移至 exam-core.js *
-        // * checkUnsentSubmission 移至 exam-core.js *
-        // * retryUpload 移至 exam-core.js *
-        // * uploadScoreToCloud 移至 exam-core.js *
 
     </script>
 
