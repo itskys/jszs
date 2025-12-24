@@ -399,6 +399,7 @@
                 <button class="btn-refresh" onclick="loadData()">🔄 刷新</button>
                 <button class="btn-analyze" onclick="analyzeData()">📉 题库体检</button>
                 <button class="btn-stats" onclick="showDistributionStats()">📊 题库分布统计</button>
+                <button class="btn-stats" style="background-color:#e83e8c;" onclick="showHeatmap()">🔥 弱项热力图</button>
                 <button class="btn-export" onclick="exportToCSV()">📥 导出</button>
                 <button class="btn-logout" onclick="logout()">🔒 退出</button>
             </div>
@@ -488,6 +489,16 @@
             <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 题库答案分布统计</h2>
             <div id="stats-body" class="modal-body">
             </div>
+        </div>
+    </div>
+
+    <!-- 知识点热力图模态框 -->
+    <div id="heatmapModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('heatmapModal')">&times;</span>
+            <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🔥 知识点薄弱环节热力图</h2>
+            <p style="color:#666; font-size:12px;">* 统计范围：当前列表中的所有考试记录。错误率越高表示该知识点越薄弱。</p>
+            <div id="heatmap-body" class="modal-body"></div>
         </div>
     </div>
 
@@ -620,6 +631,100 @@
 
             document.getElementById('stats-body').innerHTML = html;
             document.getElementById('statsModal').style.display = "block";
+        }
+
+        // ============================================
+        //  V3.2 新增：知识点热力图
+        // ============================================
+
+        function showHeatmap() {
+            if (allRecords.length === 0) { alert("暂无数据"); return; }
+
+            // 1. 聚合数据 (Chapter -> {total: 0, wrong: 0})
+            const chapterStats = {};
+
+            // 初始化所有章节统计 (防止某些章节没人做过)
+            Object.values(QUESTION_MAP).forEach(q => {
+                const ch = q.chapter || "未知章节";
+                if (!chapterStats[ch]) chapterStats[ch] = { total: 0, wrong: 0, qCount: 0 };
+                chapterStats[ch].qCount++; // 题库中该章节有多少题
+            });
+
+            // 遍历考试记录
+            allRecords.forEach(r => {
+                if (r.stats_json) {
+                    try {
+                        const s = JSON.parse(r.stats_json);
+
+                        // 统计覆盖过的题目 (作为分母)
+                        if (s.paperIds) {
+                            s.paperIds.forEach(id => {
+                                const q = QUESTION_MAP[id];
+                                if (q) {
+                                    const ch = q.chapter || "未知章节";
+                                    if (chapterStats[ch]) chapterStats[ch].total++;
+                                }
+                            });
+                        }
+
+                        // 统计错题 (作为分子)
+                        if (s.wrongIds) {
+                            s.wrongIds.forEach(id => {
+                                const q = QUESTION_MAP[id];
+                                if (q) {
+                                    const ch = q.chapter || "未知章节";
+                                    if (chapterStats[ch]) chapterStats[ch].wrong++;
+                                }
+                            });
+                        }
+                    } catch (e) { }
+                }
+            });
+
+            // 2. 计算错误率并排序
+            const results = [];
+            for (const [ch, stat] of Object.entries(chapterStats)) {
+                if (stat.total > 0) {
+                    const rate = (stat.wrong / stat.total * 100);
+                    results.push({ name: ch, ...stat, rate: rate });
+                }
+            }
+
+            // 按错误率从高到低排序
+            results.sort((a, b) => b.rate - a.rate);
+
+            // 3. 渲染可视化
+            let html = `<div class="table-wrapper"><table class="dist-table">
+                <tr><th>知识点章节</th><th>错误率 (错/总次)</th><th>题库占比</th></tr>`;
+
+            results.forEach(item => {
+                // 热力颜色计算：0% -> 绿, 50% -> 黄, 100% -> 红
+                // 简单起见：>60% 红，>30% 橙，其他绿
+                let colorClass = '#28a745';
+                if (item.rate > 60) colorClass = '#dc3545';
+                else if (item.rate > 30) colorClass = '#fd7e14';
+
+                html += `<tr>
+                    <td><b>${item.name}</b></td>
+                    <td>
+                        <div style="display:flex; align-items:center;">
+                            <span style="width:40px; font-weight:bold; color:${colorClass}">${item.rate.toFixed(1)}%</span>
+                            <div class="bar-container" style="flex:1; margin-left:10px; width:150px;">
+                                <div class="bar-fill" style="width:${item.rate}%; background:${colorClass}"></div>
+                            </div>
+                            <span style="font-size:10px; color:#999; margin-left:5px;">(${item.wrong}/${item.total})</span>
+                        </div>
+                    </td>
+                    <td style="font-size:12px; color:#666;">题库共 ${item.qCount} 题</td>
+                </tr>`;
+            });
+
+            html += `</table></div>`;
+
+            if (results.length === 0) html = "<p style='text-align:center; padding:20px;'>暂无足够的统计数据</p>";
+
+            document.getElementById('heatmap-body').innerHTML = html;
+            document.getElementById('heatmapModal').style.display = "block";
         }
 
         // ============================================
