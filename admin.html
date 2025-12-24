@@ -439,12 +439,15 @@
 
     <div id="detailModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('detailModal')">&times;</span>
             <div
                 style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
                 <h2 id="modalTitle" style="margin:0; font-size:20px;">学生详情</h2>
-                <button class="btn-export" onclick="exportStudentWrongQuestions()"
-                    style="font-size:12px; padding:6px 12px;">📥 导出错题</button>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <button class="btn-export" onclick="exportStudentWrongQuestions()"
+                        style="font-size:12px; padding:6px 12px;">📥 导出错题</button>
+                    <span class="close" onclick="closeModal('detailModal')"
+                        style="position:static; margin:0; float:none; line-height:1;">&times;</span>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="stat-grid">
