@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232d5a27%22/><text x=%2250%22 y=%2250%22 fill=%22white%22 font-size=%2255%22 font-weight=%22900%22 font-family=%22sans-serif%22 text-anchor=%22middle%22 dy=%22.35em%22>KK</text></svg>">
-    <title>2025年知识竞赛模拟系统(简易版)</title>
+    <title>2025年知识竞赛模拟系统</title>
     <style>
         :root {
             --primary: #2d5a27;
@@ -505,7 +505,7 @@
             margin-top: auto;
         }
 
-        /* 简易版特有：黄色说明框 */
+        /* 简版特有：黄色说明框 */
         .disclaimer-box {
             background: #fff3cd;
             color: #856404;
@@ -525,7 +525,7 @@
         <div class="header" id="main-header">
             <div class="logo-box">KK</div>
             <h1>2025年知识竞赛模拟系统</h1>
-            <div class="sub-title">闭卷机试(简易版) | 限时60分钟 | 总分100分</div>
+            <div class="sub-title">闭卷机试 | 限时60分钟 | 总分100分</div>
         </div>
 
         <div id="welcome-screen" class="card-box">
@@ -640,7 +640,7 @@
     <script src="js/exam-core.js"></script>
     <script>
         // ============================================
-        // V2.0 核心逻辑 (简易版：半库抽题)
+        // V2.0 核心逻辑 (简版：半库抽题)
         // ============================================
 
         // 【差异点1】版本标识：精简版
@@ -713,7 +713,7 @@
             userAnswers = {};
             switchScreenCount = 0;
 
-            // --- 简易版核心逻辑：半库锁定 ---
+            // --- 简版核心逻辑：半库锁定 ---
             const POOL_RATIO = 0.5;
             const targetSingle = 150;
             const targetMulti = 100;
