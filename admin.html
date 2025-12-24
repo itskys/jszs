@@ -749,7 +749,7 @@
                 return;
             }
 
-            let csv = "\uFEFF题目,题型,正确答案\n"; // CSV Header
+            let csv = "\uFEFF题目,题型,正确答案,选项\n"; // CSV Header
 
             currentDetailStats.wrongIds.forEach(id => {
                 const q = QUESTION_MAP[id];
@@ -757,7 +757,15 @@
                     const typeMap = { single: "单选", multi: "多选", tf: "判断" };
                     const safeQ = q.question.replace(/"/g, '""').replace(/\n/g, ' ');
                     const safeA = q.answer.replace(/"/g, '""');
-                    csv += `"${safeQ}","${typeMap[q.type] || '未知'}","${safeA}"\n`;
+
+                    // 处理选项
+                    let optionsStr = "";
+                    if (q.options && Array.isArray(q.options)) {
+                        // 将选项数组连接成一个字符串，用 " | " 分隔
+                        optionsStr = q.options.map(opt => opt.replace(/"/g, '""').trim()).join(' | ');
+                    }
+
+                    csv += `"${safeQ}","${typeMap[q.type] || '未知'}","${safeA}","${optionsStr}"\n`;
                 }
             });
 
