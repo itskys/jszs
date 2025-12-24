@@ -710,6 +710,11 @@
 
             currentPaper = [...singles, ...multis, ...tfs];
 
+            // 记录开始时间
+            window.examStartTime = Date.now();
+            // 启动实时心跳监测
+            if (typeof startHeartbeat === 'function') startHeartbeat(EXAM_VERSION);
+
             renderPaper(singles, multis, tfs);
             initAnswerCard(singles, multis, tfs);
             updateFabProgress();

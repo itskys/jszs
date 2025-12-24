@@ -1119,6 +1119,72 @@
             link.click();
         }
 
+        }
+
+        // ============================================
+        //  V3.3 新增：实时监控
+        // ============================================
+
+        function openMonitor() {
+            document.getElementById('monitorModal').style.display = 'block';
+            loadMonitorData();
+            // 自动刷新 (当模态框打开时)
+            if (window.monitorTimer) clearInterval(window.monitorTimer);
+            window.monitorTimer = setInterval(() => {
+                if (document.getElementById('monitorModal').style.display === 'block') {
+                    loadMonitorData();
+                } else {
+                    clearInterval(window.monitorTimer);
+                }
+            }, 5000);
+        }
+
+        async function loadMonitorData() {
+            const container = document.getElementById('monitor-body');
+            const password = sessionStorage.getItem('admin_pwd');
+            if (!password) { container.innerHTML = "请先登录"; return; }
+
+            try {
+                const res = await fetch('/api/monitor', { headers: { 'X-Admin-Key': password } });
+                if (res.status !== 200) throw new Error("API Error");
+                const list = await res.json();
+
+                if (list.length === 0) {
+                    container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#999;">当前无在线考生<br><span style="font-size:12px">系统将自动清理 2分钟无操作的记录</span></div>`;
+                    return;
+                }
+
+                let html = "";
+                list.forEach(u => {
+                    const lastActive = Math.floor((Date.now() - u.last_heartbeat) / 1000);
+                    let statusColor = "#28a745"; // Green
+                    if (lastActive > 30) statusColor = "#fd7e14"; // Orange
+                    if (lastActive > 60) statusColor = "#dc3545"; // Red
+
+                    const progressParts = (u.progress || "0/0").split('/');
+                    const pct = progressParts[1] > 0 ? Math.round(progressParts[0] / progressParts[1] * 100) : 0;
+
+                    html += `
+                    <div style="background:white; border:1px solid #eee; border-radius:8px; padding:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05); position:relative;">
+                        <div style="position:absolute; top:10px; right:10px; width:10px; height:10px; border-radius:50%; background:${statusColor};" title="${lastActive}秒前活跃"></div>
+                        <h3 style="margin:0 0 5px 0; font-size:16px;">${u.student_name}</h3>
+                        <div style="font-size:12px; color:#666; margin-bottom:10px;">${u.student_id} <span class="tag tag-ver">${u.exam_version}</span></div>
+                        
+                        <div style="font-size:12px; margin-bottom:5px;">答题进度: <b>${u.progress}</b></div>
+                        <div class="bar-container" style="width:100%; height:6px; background:#eee;">
+                            <div class="bar-fill" style="width:${pct}%; background:#007bff;"></div>
+                        </div>
+                        <div style="margin-top:8px; font-size:10px; color:#999;">开始于: ${new Date(u.start_time).toLocaleTimeString()}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `<div style="color:red">加载失败</div>`;
+            }
+        }
+
         function logout() { sessionStorage.removeItem('admin_pwd'); location.reload(); }
 
         window.onclick = function (event) {
