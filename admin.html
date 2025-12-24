@@ -402,6 +402,7 @@
                 <button class="btn-analyze" onclick="analyzeData()">📉 题库体检</button>
                 <button class="btn-stats" onclick="showDistributionStats()">📊 题库分布统计</button>
                 <button class="btn-stats" style="background-color:#e83e8c;" onclick="showHeatmap()">🔥 弱项热力图</button>
+                <button class="btn-stats" style="background-color:#17a2b8;" onclick="openMonitor()">📡 实时监控</button>
                 <button class="btn-export" onclick="exportToCSV()">📥 导出</button>
                 <button class="btn-logout" onclick="logout()">🔒 退出</button>
             </div>
@@ -501,6 +502,60 @@
             <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🔥 知识点薄弱环节热力图</h2>
             <p style="color:#666; font-size:12px;">* 统计范围：当前列表中的所有考试记录。错误率越高表示该知识点越薄弱。</p>
             <div id="heatmap-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- 实时监控模态框 -->
+    <div id="monitorModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('monitorModal')">&times;</span>
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h2 style="margin:0;">📡 实时考场监控</h2>
+                <button class="btn-refresh" style="font-size:12px; padding:6px 12px;" onclick="loadMonitorData()">🔄
+                    刷新列表</button>
+            </div>
+            <p style="color:#666; font-size:12px;">* 仅显示最近 2 分钟内活跃的考生。超时未操作将自动视为离线。</p>
+            <div id="monitor-body" class="modal-body"
+                style="background:#f8f9fa; padding:15px; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
+                <!-- 考生卡片将渲染在这里 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 实时监控模态框 -->
+    <div id="monitorModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('monitorModal')">&times;</span>
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h2 style="margin:0;">📡 实时考场监控</h2>
+                <button class="btn-refresh" style="font-size:12px; padding:6px 12px;" onclick="loadMonitorData()">🔄
+                    刷新列表</button>
+            </div>
+            <p style="color:#666; font-size:12px;">* 仅显示最近 2 分钟内活跃的考生。超时未操作将自动视为离线。</p>
+            <div id="monitor-body" class="modal-body"
+                style="background:#f8f9fa; padding:15px; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
+                <!-- 考生卡片将渲染在这里 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 实时监控模态框 -->
+    <div id="monitorModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('monitorModal')">&times;</span>
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h2 style="margin:0;">📡 实时考场监控</h2>
+                <button class="btn-refresh" style="font-size:12px; padding:6px 12px;" onclick="loadMonitorData()">🔄
+                    刷新列表</button>
+            </div>
+            <p style="color:#666; font-size:12px;">* 仅显示最近 2 分钟内活跃的考生。超时未操作将自动视为离线。</p>
+            <div id="monitor-body" class="modal-body"
+                style="background:#f8f9fa; padding:15px; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
+                <!-- 考生卡片将渲染在这里 -->
+            </div>
         </div>
     </div>
 
@@ -727,6 +782,70 @@
 
             document.getElementById('heatmap-body').innerHTML = html;
             document.getElementById('heatmapModal').style.display = "block";
+        }
+
+        // ============================================
+        //  V3.3 新增：实时监控
+        // ============================================
+
+        function openMonitor() {
+            document.getElementById('monitorModal').style.display = 'block';
+            loadMonitorData();
+            // 自动刷新 (当模态框打开时)
+            if (window.monitorTimer) clearInterval(window.monitorTimer);
+            window.monitorTimer = setInterval(() => {
+                if (document.getElementById('monitorModal').style.display === 'block') {
+                    loadMonitorData();
+                } else {
+                    clearInterval(window.monitorTimer);
+                }
+            }, 5000);
+        }
+
+        async function loadMonitorData() {
+            const container = document.getElementById('monitor-body');
+            const password = sessionStorage.getItem('admin_pwd');
+            if (!password) { container.innerHTML = "请先登录"; return; }
+
+            try {
+                const res = await fetch('/api/monitor', { headers: { 'X-Admin-Key': password } });
+                if (res.status !== 200) throw new Error("API Error");
+                const list = await res.json();
+
+                if (list.length === 0) {
+                    container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#999;">当前无在线考生<br><span style="font-size:12px">系统将自动清理 2分钟无操作的记录</span></div>`;
+                    return;
+                }
+
+                let html = "";
+                list.forEach(u => {
+                    const lastActive = Math.floor((Date.now() - u.last_heartbeat) / 1000);
+                    let statusColor = "#28a745"; // Green
+                    if (lastActive > 30) statusColor = "#fd7e14"; // Orange
+                    if (lastActive > 60) statusColor = "#dc3545"; // Red
+
+                    const progressParts = (u.progress || "0/0").split('/');
+                    const pct = progressParts[1] > 0 ? Math.round(progressParts[0] / progressParts[1] * 100) : 0;
+
+                    html += `
+                    <div style="background:white; border:1px solid #eee; border-radius:8px; padding:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05); position:relative;">
+                        <div style="position:absolute; top:10px; right:10px; width:10px; height:10px; border-radius:50%; background:${statusColor};" title="${lastActive}秒前活跃"></div>
+                        <h3 style="margin:0 0 5px 0; font-size:16px;">${u.student_name}</h3>
+                        <div style="font-size:12px; color:#666; margin-bottom:10px;">${u.student_id} <span class="tag tag-ver">${u.exam_version}</span></div>
+                        
+                        <div style="font-size:12px; margin-bottom:5px;">答题进度: <b>${u.progress}</b></div>
+                        <div class="bar-container" style="width:100%; height:6px; background:#eee;">
+                            <div class="bar-fill" style="width:${pct}%; background:#007bff;"></div>
+                        </div>
+                        <div style="margin-top:8px; font-size:10px; color:#999;">开始于: ${new Date(u.start_time).toLocaleTimeString()}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `<div style="color:red">加载失败</div>`;
+            }
         }
 
         // ============================================

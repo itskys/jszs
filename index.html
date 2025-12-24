@@ -723,6 +723,11 @@
             clearInterval(timerId);
             timerId = setInterval(updateTimer, 1000);
 
+            // 记录开始时间
+            window.examStartTime = Date.now();
+            // 启动实时心跳监测
+            if (typeof startHeartbeat === 'function') startHeartbeat(EXAM_VERSION);
+
             // 立即保存初始状态
             saveExamState();
         }

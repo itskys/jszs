@@ -15,6 +15,8 @@ let globalIndexMap = {};
 let currentStudent = { name: "", id: "" };
 let QUESTION_MAP = {};
 let switchScreenCount = 0;
+let sessionId = "sess_" + Math.random().toString(36).substr(2, 9); // 会话唯一ID
+let heartbeatInterval = null;
 
 // ================= 初始化与核心逻辑 =================
 
@@ -444,6 +446,42 @@ async function retryUpload() {
     } catch (e) {
         alert("重试失败，请检查网络：" + e.message);
     }
+}
+
+// 5. 实时心跳 (Live Monitor)
+function startHeartbeat(examVersion) {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+    const sendPulse = async () => {
+        if (isExamFinished) {
+            clearInterval(heartbeatInterval);
+            return;
+        }
+
+        // 计算进度
+        const answeredCount = Object.keys(userAnswers).length;
+        const totalCount = currentPaper.length;
+        const progress = `${answeredCount}/${totalCount}`;
+
+        try {
+            await fetch('/api/monitor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: sessionId,
+                    name: currentStudent.name,
+                    id: currentStudent.id,
+                    version: examVersion,
+                    startTime: window.examStartTime || Date.now(), // 需要 index.html/exam.html 设置 startTime
+                    progress: progress
+                })
+            });
+        } catch (e) { console.warn("Heartbeat failed", e); }
+    };
+
+    // 立即发送一次，然后每 30 秒发送一次
+    sendPulse();
+    heartbeatInterval = setInterval(sendPulse, 30 * 1000);
 }
 
 // 核心提交逻辑 (Cloudflare D1) - 供外部 submitExam 调用
