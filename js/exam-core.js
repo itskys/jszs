@@ -15,7 +15,7 @@ let globalIndexMap = {};
 let currentStudent = { name: "", id: "" };
 let QUESTION_MAP = {};
 let switchScreenCount = 0;
-let sessionId = "sess_" + Math.random().toString(36).substr(2, 9); // 会话唯一ID
+let sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : "sess_" + Math.random().toString(36).substr(2, 9);
 let heartbeatInterval = null;
 
 // ================= 初始化与核心逻辑 =================
@@ -472,7 +472,7 @@ function startHeartbeat(examVersion) {
                     name: currentStudent.name,
                     id: currentStudent.id,
                     version: examVersion,
-                    startTime: window.examStartTime || Date.now(), // 需要 index.html/exam.html 设置 startTime
+                    startTime: (window.examStartTime && !isNaN(window.examStartTime)) ? window.examStartTime : Date.now(),
                     progress: progress
                 })
             });
